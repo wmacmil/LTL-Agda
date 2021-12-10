@@ -45,6 +45,16 @@ empt true = false
 relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
 
+mutual
+  even : ℕ → Bool
+  even zero = true
+  even (suc x) = odd x
+
+  odd : ℕ → Bool
+  odd zero = false
+  odd (suc zero) = true
+  odd (suc (suc n)) = even (suc n)
+
 module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
 
   record 𝑀 : Set where
@@ -63,13 +73,10 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
       infSeq         : ℕ → State
       isTransitional : alwaysSteps infSeq
 
-  -- open streamAlwaysTransitions
   open Path
 
   headPath : Path → State
   headPath record { infSeq = infSeq ; isTransitional = isTransitional } = infSeq 0
-  -- headPath p = {!!}
-  -- headPath p = {!!}
 
   tailPath : Path → Path
   tailPath record { infSeq = infSeq ; isTransitional = isTransitional } .Path.infSeq x = infSeq (suc x)
@@ -79,51 +86,44 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
   path-i zero p = p
   path-i (suc i) p = path-i i (tailPath p)
 
-  -- path-i (suc i) record { infSeq = infSeq ; isTransitional = isTransitional } .Path.infSeq = {!!}
-  -- path-i (suc i) record { infSeq = infSeq ; isTransitional = isTransitional } .Path.isTransitional = {!!}
-  -- path-i zero p .infSeq            = {!!}
-  -- path-i zero p .isTransitional    = {!!}
-  -- path-i (suc i) p .infSeq         = {!!}
-  -- path-i (suc i) p .isTransitional = {!!}
+  -- module _ (M : 𝑀) where
+  --   open 𝑀 M
 
-  module _ (M : 𝑀) where
-    open 𝑀 M
+  mutual
 
-    mutual
+    future : Path → ϕ Atom → Set
+    future π ψ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ
 
-      future : Path → ϕ Atom → Set
-      future π ψ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ
+    global : Path → ϕ Atom → Set
+    global π ψ = ∀ i → (path-i i π) ⊧ ψ
 
-      global : Path → ϕ Atom → Set
-      global π ψ = ∀ i → (path-i i π) ⊧ ψ
+    justUpTil : ℕ → Path → ϕ Atom → Set
+    justUpTil i π ψ = (∀ (j : ℕ) → j <' i → (path-i j π) ⊧ ψ)
 
-      justUpTil : ℕ → Path → ϕ Atom → Set
-      justUpTil i π ψ = (∀ (j : ℕ) → j <' i → (path-i j π) ⊧ ψ)
+    upTil : ℕ → Path → ϕ Atom → Set
+    upTil i π ψ = (∀ (j : ℕ) → j ≤' i → (path-i j π) ⊧ ψ)
 
-      upTil : ℕ → Path → ϕ Atom → Set
-      upTil i π ψ = (∀ (j : ℕ) → j ≤' i → (path-i j π) ⊧ ψ)
+    -- can rewrite with future in first clause
+    justUntil : Path → ϕ Atom → ϕ Atom → Set
+    justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × justUpTil i π ψ
 
-      -- can rewrite with future in first clause
-      justUntil : Path → ϕ Atom → ϕ Atom → Set
-      justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × justUpTil i π ψ
+    until : Path → ϕ Atom → ϕ Atom → Set
+    until π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × upTil i π ψ
 
-      until : Path → ϕ Atom → ϕ Atom → Set
-      until π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × upTil i π ψ
-
-      _⊧_ : Path → ϕ Atom → Set
-      π ⊧ ⊥        = ⊥'
-      π ⊧ ⊤        = ⊤'
-      π ⊧ atom p   = T (L {!!}) -- ⊤' -- T {!!} -- T (L (headPath π) p)
-      π ⊧ (¬ ψ)    = ¬' (π ⊧ ψ)
-      π ⊧ (ψ ∨ ψ₁) = (π ⊧ ψ) ⊎ (π ⊧ ψ₁)
-      π ⊧ (ψ ∧ ψ₁) = (π ⊧ ψ) × (π ⊧ ψ₁)
-      π ⊧ (ψ ⇒ ψ₁) = (π ⊧ ψ) → (π ⊧ ψ₁)
-      π ⊧ X ψ      = tailPath π ⊧ ψ
-      π ⊧ F ψ      = future π ψ
-      π ⊧ G ψ      = global π ψ
-      π ⊧ (ψ U ψ₁) = justUntil π ψ ψ₁
-      π ⊧ (ψ W ψ₁) = justUntil π ψ ψ₁ ⊎ global π ψ
-      π ⊧ (ψ R ψ₁) = until π ψ₁ ψ ⊎ global π ψ
+    _⊧_ : Path → ϕ Atom → Set
+    π ⊧ ⊥        = ⊥'
+    π ⊧ ⊤        = ⊤'
+    π ⊧ atom p   = ⊤' -- T (L {!!}) -- ⊤' -- T {!!} -- T (L (headPath π) p)
+    π ⊧ (¬ ψ)    = ¬' (π ⊧ ψ)
+    π ⊧ (ψ ∨ ψ₁) = (π ⊧ ψ) ⊎ (π ⊧ ψ₁)
+    π ⊧ (ψ ∧ ψ₁) = (π ⊧ ψ) × (π ⊧ ψ₁)
+    π ⊧ (ψ ⇒ ψ₁) = (π ⊧ ψ) → (π ⊧ ψ₁)
+    π ⊧ X ψ      = tailPath π ⊧ ψ
+    π ⊧ F ψ      = future π ψ
+    π ⊧ G ψ      = global π ψ
+    π ⊧ (ψ U ψ₁) = justUntil π ψ ψ₁
+    π ⊧ (ψ W ψ₁) = justUntil π ψ ψ₁ ⊎ global π ψ
+    π ⊧ (ψ R ψ₁) = until π ψ₁ ψ ⊎ global π ψ
 
 module Example1 where
 
@@ -167,6 +167,27 @@ module Example1 where
   ex1IsTransitionSyst : 𝑀 states steps
   ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
   ex1IsTransitionSyst .L        = l
+
+  -- rightmost branch on computation tree
+  pathRight : Path states steps
+  pathRight .Transition.Path.infSeq zero = s0
+  pathRight .Transition.Path.infSeq (suc i) = s2
+  pathRight .Transition.Path.isTransitional zero = s0s2
+  pathRight .Transition.Path.isTransitional (suc i) = s2s2
+
+  -- -- how to do coinduction
+  -- pathLeft : Path states steps
+  -- pathLeft .Transition.Path.infSeq x = if (even x) then s0 else s1
+  -- -- pathLeft .Transition.Path.infSeq (suc zero) = {!!}
+  -- -- pathLeft .Transition.Path.infSeq (suc (suc i)) = {!!}
+  -- pathLeft .Transition.Path.isTransitional zero = s0s1
+  -- pathLeft .Transition.Path.isTransitional (suc zero) = s1s0
+  -- -- pathLeft .Transition.Path.isTransitional (suc (suc i)) = let x = (path-i states steps i pathLeft) in {!Transition.Path.isTransitional!}
+  -- -- ... | false = {!!}
+  -- -- ... | true = {!!}
+  
+
+  -- ⊧_
 
 
 -- character references
