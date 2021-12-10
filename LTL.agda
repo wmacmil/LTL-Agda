@@ -1,4 +1,5 @@
 {-# OPTIONS --postfix-projections #-}
+{-# OPTIONS --no-positivity-check #-}
 
 module LTL where
 
@@ -50,6 +51,7 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
     field
       relSteps : relAlwaysSteps _⟶_
       L : State → 𝑃 Atom
+      -- L : State → Atom → Bool
 
   record Stream : Set where
     coinductive
@@ -81,30 +83,51 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
   open streamAlwaysTransitions
   open Path
 
+  headPath : Path → State
+  headPath x = hd (infSeq x)
+
   tailPath : Path → Path
   tailPath p .infSeq         = tl (infSeq p)
   tailPath p .isTransitional = tailValid (isTransitional p)
 
-  _⊧_ : Path → ϕ Atom → Set
-  π ⊧ ⊥        = ⊥'
-  π ⊧ ⊤        = ⊤'
-  π ⊧ atom x   = {!!}
-  π ⊧ (¬ ψ)    = ¬' (π ⊧ ψ)
-  π ⊧ (ψ ∨ ψ₁) = (π ⊧ ψ) ⊎ (π ⊧ ψ₁)
-  π ⊧ (ψ ∧ ψ₁) = (π ⊧ ψ) × (π ⊧ ψ₁)
-  π ⊧ (ψ ⇒ ψ₁) = (π ⊧ ψ) → (π ⊧ ψ₁)
-  π ⊧ X ψ      = tailPath π ⊧ ψ
-  π ⊧ F ψ      = {!!}
-  π ⊧ G ψ      = {!!}
-  π ⊧ (ψ U ψ₁) = {!!}
-  π ⊧ (ψ W ψ₁) = {!!}
-  π ⊧ (ψ R ψ₁) = {!!}
-  -- open Stream
-  -- record _≈_ {A : Set} (xs : Stream A) (ys : Stream A) : Set where
-  --   coinductive
-  --   field
-  --     hd-≈ : hd xs ≡ hd ys
-  --     tl-≈ : tl xs ≈ tl ys
+  module _ (M : 𝑀) where
+    open 𝑀 M
+
+    _⊧_ : Path → ϕ Atom → Set
+
+    record G-pf (ψ : ϕ Atom) (π : Path) : Set where
+      coinductive
+      field
+        ∀-h : π ⊧ ψ
+        ∀-t : G-pf ψ (tailPath π)
+
+    data F-pf (P : ϕ Atom) (σ : Path) : Set where
+      ev_h : σ ⊧ P → F-pf P σ
+      ev_t : F-pf P (tailPath σ) -> F-pf P σ
+
+    data U-Pf (P Q : ϕ Atom) (σ : Path) : Set where
+      until-h : σ ⊧ Q → (U-Pf P Q) σ
+      until-t : σ ⊧ P → (U-Pf P Q) (tailPath σ) → (U-Pf P Q) σ
+
+    π ⊧ ⊥        = ⊥'
+    π ⊧ ⊤        = ⊤'
+    π ⊧ atom x   = T (L (headPath π) x)
+    π ⊧ (¬ ψ)    = ¬' (π ⊧ ψ)
+    π ⊧ (ψ ∨ ψ₁) = (π ⊧ ψ) ⊎ (π ⊧ ψ₁)
+    π ⊧ (ψ ∧ ψ₁) = (π ⊧ ψ) × (π ⊧ ψ₁)
+    π ⊧ (ψ ⇒ ψ₁) = (π ⊧ ψ) → (π ⊧ ψ₁)
+    π ⊧ X ψ      = tailPath π ⊧ ψ
+    π ⊧ F ψ      = F-pf ψ π
+    π ⊧ G ψ      = G-pf ψ π
+    π ⊧ (ψ U ψ₁) = U-Pf ψ ψ₁ π
+    π ⊧ (ψ W ψ₁) = (U-Pf ψ ψ₁ π) ⊎ G-pf ψ π
+    π ⊧ (ψ R ψ₁) = {!!}
+    -- open Stream
+    -- record _≈_ {A : Set} (xs : Stream A) (ys : Stream A) : Set where
+    --   coinductive
+    --   field
+    --     hd-≈ : hd xs ≡ hd ys
+    --     tl-≈ : tl xs ≈ tl ys
 
 
 
