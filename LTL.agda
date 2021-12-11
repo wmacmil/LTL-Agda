@@ -1,5 +1,4 @@
 {-# OPTIONS --postfix-projections #-}
-{-# OPTIONS --no-positivity-check #-}
 
 module LTL where
 
@@ -90,25 +89,29 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
   tailPath p .infSeq         = tl (infSeq p)
   tailPath p .isTransitional = tailValid (isTransitional p)
 
+  -- drop : ℕ → Path → Path
+  -- drop 0 x = x
+  -- drop (suc n) x = tailPath (drop n x)
+
   module _ (M : 𝑀) where
     open 𝑀 M
 
-    _⊧_ : Path → ϕ Atom → Set
 
-    record G-pf (ψ : ϕ Atom) (π : Path) : Set where
+    record G-pf (ψ : Path → Set) (π : Path) : Set where
       coinductive
       field
-        ∀-h : π ⊧ ψ
+        ∀-h : ψ π
         ∀-t : G-pf ψ (tailPath π)
 
-    data F-pf (P : ϕ Atom) (σ : Path) : Set where
-      ev_h : σ ⊧ P → F-pf P σ
+    data F-pf (P : Path → Set) (σ : Path) : Set where
+      ev_h : P σ → F-pf P σ
       ev_t : F-pf P (tailPath σ) -> F-pf P σ
 
-    data U-Pf (P Q : ϕ Atom) (σ : Path) : Set where
-      until-h : σ ⊧ Q → (U-Pf P Q) σ
-      until-t : σ ⊧ P → (U-Pf P Q) (tailPath σ) → (U-Pf P Q) σ
+    data U-Pf (P Q : Path → Set) (σ : Path) : Set where
+      until-h : Q σ → (U-Pf P Q) σ
+      until-t : P σ → (U-Pf P Q) (tailPath σ) → (U-Pf P Q) σ
 
+    _⊧_ : Path → ϕ Atom → Set
     π ⊧ ⊥        = ⊥'
     π ⊧ ⊤        = ⊤'
     π ⊧ atom x   = T (L (headPath π) x)
@@ -117,10 +120,11 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
     π ⊧ (ψ ∧ ψ₁) = (π ⊧ ψ) × (π ⊧ ψ₁)
     π ⊧ (ψ ⇒ ψ₁) = (π ⊧ ψ) → (π ⊧ ψ₁)
     π ⊧ X ψ      = tailPath π ⊧ ψ
-    π ⊧ F ψ      = F-pf ψ π
-    π ⊧ G ψ      = G-pf ψ π
-    π ⊧ (ψ U ψ₁) = U-Pf ψ ψ₁ π
-    π ⊧ (ψ W ψ₁) = (U-Pf ψ ψ₁ π) ⊎ G-pf ψ π
+    π ⊧ F ψ      = F-pf (_⊧ ψ) π
+    π ⊧ G ψ      = G-pf (_⊧ ψ) π
+    -- π ⊧ G ψ      = ∀ (n : ℕ) → drop n π ⊧ ψ
+    π ⊧ (ψ U ψ₁) = U-Pf (_⊧ ψ) (_⊧ ψ₁) π
+    π ⊧ (ψ W ψ₁) = (U-Pf (_⊧ ψ) (_⊧ ψ₁) π) ⊎ G-pf (_⊧ ψ) π
     π ⊧ (ψ R ψ₁) = {!!}
     -- open Stream
     -- record _≈_ {A : Set} (xs : Stream A) (ys : Stream A) : Set where
