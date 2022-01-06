@@ -139,6 +139,14 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
     --     hd-≈ : hd xs ≡ hd ys
     --     tl-≈ : tl xs ≈ tl ys
 
+-- module Model (Atom : Set) (State : Set) where
+
+    -- open Syntax Atom public
+    -- open Transition Atom State
+      --Definition 3.7
+    _,_⊧_ : (M : 𝑀) → State → ϕ Atom → Set
+    -- M , s ⊧ ψ = ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
+    M , s ⊧ ψ = ∀ (p : Path) → p .infSeq .hd  ≡ s →  _⊧_ p ψ
 
 
 module Example1 where
@@ -232,12 +240,13 @@ module Example1 where
   pathLeft .infSeq = seqLEven
   pathLeft .isTransitional = transLEven
 
+  always-q-Left : _⊧_ ex1IsTransitionSyst pathLeft (atom q)
+  always-q-Left = tt
 
+  one : _,_⊧_ ex1IsTransitionSyst  ex1IsTransitionSyst s0 ((atom p) ∧ (atom q))
+  one record { infSeq = infSeq ; isTransitional = isTransitional } = {!infSeq!}
+  -- _,_⊧_ :
 
-  -- pathRight .infSeq zero = s0
-  -- pathRight .infSeq (suc i) = s2
-  -- pathRight .isTransitional zero = s0s2
-  -- pathRight .isTransitional (suc i) = s2s2
 
 -- character references
 -- 𝑀 == \MiM

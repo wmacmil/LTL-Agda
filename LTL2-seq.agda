@@ -56,22 +56,39 @@ module Transition (Atom : Set) (State : Set) (Model : 𝑀 Atom State) where
   alwaysSteps : (sₙ : ℕ → State) → Set
   alwaysSteps s = ∀ i → s i ⟶ s (suc i)
 
+
+  -- record Path : Set where
+  --   field
+  --     infSeq         : ℕ → State
+  --     isTransitional : alwaysSteps infSeq
+
   record Path : Set where
     field
+      initial : State
       infSeq         : ℕ → State
+      initialSteps : initial ⟶ infSeq 0
       isTransitional : alwaysSteps infSeq
 
   open Path
 
-  headPath : Path → State
-  headPath p = p .infSeq 0
+  -- initialPath : Path → (s : State) → Σ[ s' ∈ State ] s ⟶ s' → Path -- need an accompanying proof that the state steps
+  -- initialPath record { infSeq = infSeq ; isTransitional = isTransitional } state steps .Path.infSeq zero = state
+  -- initialPath record { infSeq = infSeq ; isTransitional = isTransitional } x₁ steps .Path.infSeq (suc n) = infSeq n
+  -- initialPath record { infSeq = infSeq ; isTransitional = isTransitional } x₁ steps .Path.isTransitional = λ i → {!!}
 
-  pathStartsAt : Path → State → Set
-  pathStartsAt p s = (headPath p) ≡ s
+  headPath : Path → State
+  headPath p = p .initial
+
+  -- pathStartsAt : Path → State → Set
+  -- pathStartsAt p s = (headPath p) ≡ s
 
   tailPath : Path → Path
+  tailPath p .initial = p .infSeq 0
   tailPath p .infSeq x = p .infSeq (suc x)
+  tailPath p .initialSteps = p .isTransitional 0
   tailPath p .isTransitional i = p .isTransitional (suc i)
+  -- tailPath p .infSeq x = p .infSeq (suc x)
+  -- tailPath p .isTransitional i = p .isTransitional (suc i)
 
   -- path-i == drop
   path-i : ℕ → Path → Path
@@ -124,8 +141,11 @@ module Model (Atom : Set) (State : Set) where
   open Transition Atom State
 
   --Definition 3.7
-  _,_⊧_ : (M : 𝑀 Atom State) → State → ϕ M → Set
-  M , s ⊧ ψ = ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
+  _,⊧_ : (M : 𝑀 Atom State) → ϕ M → Set
+  _,⊧_ M ψ = ∀ (p : Path M) → _⊧_ M p ψ
+
+  -- -- M , s ⊧ ψ = ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
+  -- M , s ⊧ ψ = ∀ (p : Path M) → _⊧_ M (p.infSeq 0) ψ
 
   -- _,_⊧'_ : (M : 𝑀 Atom State) → (p : Path M) → (headPath M p) → ϕ M → Set
   -- M , p ⊧' ψ = _⊧_ M p ψ
@@ -186,18 +206,60 @@ module Example1 where
   -- rightmost and leftmost branches on computation tree
 
   pathRight : Path
-  pathRight .infSeq zero = s0
-  pathRight .infSeq (suc i) = s2
-  pathRight .isTransitional zero = s0s2
-  pathRight .isTransitional (suc i) = s2s2
+  pathRight .initial = s0
+  pathRight .infSeq i = s2
+  pathRight .initialSteps = s0s2
+  pathRight .isTransitional i = s2s2
 
+  -- pathRight .infSeq zero = s0
+  -- pathRight .infSeq (suc i) = s2
+  -- pathRight .isTransitional zero = s0s2
+  -- pathRight .isTransitional (suc i) = s2s2
+
+-- extra work
   pathLeft : Path
-  pathLeft .infSeq zero = s0
-  pathLeft .infSeq (suc zero) = s1
-  pathLeft .infSeq (suc (suc x)) = pathLeft .infSeq x
-  pathLeft .isTransitional zero = s0s1
-  pathLeft .isTransitional (suc zero) = s1s0
+  pathLeft .initial = s0
+  pathLeft .infSeq zero = s1
+  pathLeft .infSeq (suc zero) = s0
+  pathLeft .infSeq (suc (suc i)) = pathLeft .infSeq i
+  pathLeft .initialSteps = s0s1
+  pathLeft .isTransitional zero = s1s0
+  pathLeft .isTransitional (suc zero) = s0s1
   pathLeft .isTransitional (suc (suc i)) = pathLeft .isTransitional i
+
+  -- pathLeft .infSeq zero = s0
+  -- pathLeft .infSeq (suc zero) = s1
+  -- pathLeft .infSeq (suc (suc x)) = pathLeft .infSeq x
+  -- pathLeft .isTransitional zero = s0s1
+  -- pathLeft .isTransitional (suc zero) = s1s0
+  -- pathLeft .isTransitional (suc (suc i)) = pathLeft .isTransitional i
+
+
+  -- allPathsStartAt-s0 : (p' : Path) → pathStartsAt p' s0
+  -- allPathsStartAt-s0 record { infSeq = infSeq ; isTransitional = isTransitional } = {!refl  !}
+
+
+  always-q-0 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ (atom q)
+  always-q-0 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } x = tt
+
+  always-q-1 : ∀ (path : Path) → (path .initial ≡ s0) → (path ⊧ ((atom q) ∧ (atom r)) → ⊥')
+  always-q-1 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } x ()
+
+  --can also quantify over initial state
+  -- r comes after p
+
+  -- extensionality would come in handy
+  always-q-2 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ G (F (atom p)) → path ≡ pathLeft
+  always-q-2 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } refl y = {!!}
+
+  -- always-q-2 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ ((G (F (atom p))) ⇒ (G (F (atom r))))
+
+  -- always-q-2 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } refl y zero = 1 , {!y!}
+  -- always-q-2 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } refl x₁ (suc i) = {!!}
+
+  -- always-q-0 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } = tt
+  -- always-q-0 record { initial = s1 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } = {!!}
+  -- always-q-0 record { initial = s2 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } = {!!}
 
   always-q-Left : pathLeft ⊧ (atom q)
   always-q-Left = tt
@@ -215,7 +277,9 @@ module Example1 where
 
   open Model atoms states
 
-  -- one : ex1IsTransitionSyst , s0 ⊧ (p ∧ q)
+  -- one : ex1IsTransitionSyst ,⊧ ((atom p) ∧ (atom q))
+  -- one = λ p₁ → {!!} , {!!} 
+
 
   -- -- one : ex1IsTransitionSyst , s0 ⊧ (p ∧ q)
   -- one : _,_⊧'_ ex1IsTransitionSyst {!!} ((atom p) ∧ (atom q))
