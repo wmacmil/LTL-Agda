@@ -1,4 +1,5 @@
 {-# OPTIONS --postfix-projections #-}
+{-# OPTIONS --guardedness #-}
 
 module LTL where
 
@@ -11,6 +12,7 @@ open import Relation.Nullary renaming (¬_ to ¬'_)
 open import Data.Fin
 open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
+
 
 module Syntax (Atom : Set) where
 
@@ -54,7 +56,7 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
 
   record Stream : Set where
     coinductive
-    constructor cons
+    -- constructor cons
     field
       hd : State
       tl : Stream
@@ -111,6 +113,10 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
       until-h : Q σ → (U-Pf P Q) σ
       until-t : P σ → (U-Pf P Q) (tailPath σ) → (U-Pf P Q) σ
 
+    data Uincl-Pf (P Q : Path → Set) (σ : Path) : Set where
+      untilI-h : P σ → Q σ → (Uincl-Pf P Q) σ
+      untilI-t : P σ → (Uincl-Pf P Q) (tailPath σ) → (Uincl-Pf P Q) σ
+
     _⊧_ : Path → ϕ Atom → Set
     π ⊧ ⊥        = ⊥'
     π ⊧ ⊤        = ⊤'
@@ -125,7 +131,7 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
     -- π ⊧ G ψ      = ∀ (n : ℕ) → drop n π ⊧ ψ
     π ⊧ (ψ U ψ₁) = U-Pf (_⊧ ψ) (_⊧ ψ₁) π
     π ⊧ (ψ W ψ₁) = (U-Pf (_⊧ ψ) (_⊧ ψ₁) π) ⊎ G-pf (_⊧ ψ) π
-    π ⊧ (ψ R ψ₁) = {!!}
+    π ⊧ (ψ R ψ₁) = Uincl-Pf (_⊧ ψ₁) (_⊧ ψ) π ⊎ G-pf (_⊧ ψ) π
     -- open Stream
     -- record _≈_ {A : Set} (xs : Stream A) (ys : Stream A) : Set where
     --   coinductive
@@ -171,13 +177,67 @@ module Example1 where
   l s2 q = false
   l s2 r = true
 
-  open Transition atoms
+  open Transition atoms states steps
   open 𝑀
 
-  ex1IsTransitionSyst : 𝑀 states steps
+  ex1IsTransitionSyst : 𝑀
   ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
   ex1IsTransitionSyst .L        = l
 
+  open Path
+  open Stream
+  open streamAlwaysTransitions
+
+  -- _◅_ : ∀ {i j k} (x : T i j) (xs : Star T j k) → Star T i k
+
+  s2Stream : Stream
+  s2Stream .hd = s2
+  s2Stream .tl = s2Stream
+
+  s2Transitions : streamAlwaysTransitions s2Stream
+  s2Transitions .headValid = s2s2
+  s2Transitions .tailValid = s2Transitions
+
+  s2Path : Path
+  s2Path .infSeq = s2Stream
+  s2Path .isTransitional = s2Transitions
+  -- s2Path .infSeq .hd = s2
+  -- s2Path .infSeq .tl = s2Path .infSeq
+  -- s2Path .isTransitional .headValid = s2s2
+  -- s2Path .isTransitional .tailValid = s2Path .isTransitional
+
+  -- rightmost branch on computation tree
+  pathRight : Path
+  pathRight .infSeq .hd = s0
+  pathRight .infSeq .tl = s2Path .infSeq
+  pathRight .isTransitional .headValid = s0s2
+  pathRight .isTransitional .tailValid = s2Path .isTransitional
+
+
+  seqLEven : Stream
+  seqLOdd : Stream
+  seqLEven .hd = s0
+  seqLEven .tl = seqLOdd
+  seqLOdd .hd = s1
+  seqLOdd .tl = seqLEven
+
+  transLEven : streamAlwaysTransitions seqLEven
+  transLOdd : streamAlwaysTransitions seqLOdd
+  transLEven .headValid = s0s1
+  transLEven .tailValid = transLOdd
+  transLOdd .headValid = s1s0
+  transLOdd .tailValid = transLEven
+
+  pathLeft : Path
+  pathLeft .infSeq = seqLEven
+  pathLeft .isTransitional = transLEven
+
+
+
+  -- pathRight .infSeq zero = s0
+  -- pathRight .infSeq (suc i) = s2
+  -- pathRight .isTransitional zero = s0s2
+  -- pathRight .isTransitional (suc i) = s2s2
 
 -- character references
 -- 𝑀 == \MiM

@@ -27,7 +27,6 @@ module Syntax (Atom : Set) where
   -- isSubForm : ϕ → ϕ → Set
   -- isSubForm ψ phi = {!phi \!}
 
-open Syntax
 
 rel : Set → Set₁
 rel s = s → s → Set
@@ -55,6 +54,7 @@ mutual
   odd (suc zero) = true
   odd (suc (suc n)) = even (suc n)
 
+open Syntax
 module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
 
   record 𝑀 : Set where
@@ -170,21 +170,44 @@ module Example1 where
   ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
   ex1IsTransitionSyst .L        = l
 
+  open Path
   -- rightmost branch on computation tree
   pathRight : Path states steps
-  pathRight .Transition.Path.infSeq zero = s0
-  pathRight .Transition.Path.infSeq (suc i) = s2
-  pathRight .Transition.Path.isTransitional zero = s0s2
-  pathRight .Transition.Path.isTransitional (suc i) = s2s2
+  pathRight .infSeq zero = s0
+  pathRight .infSeq (suc i) = s2
+  pathRight .isTransitional zero = s0s2
+  pathRight .isTransitional (suc i) = s2s2
 
-  -- -- how to do coinduction
-  -- pathLeft : Path states steps
-  -- pathLeft .Transition.Path.infSeq x = if (even x) then s0 else s1
-  -- -- pathLeft .Transition.Path.infSeq (suc zero) = {!!}
-  -- -- pathLeft .Transition.Path.infSeq (suc (suc i)) = {!!}
-  -- pathLeft .Transition.Path.isTransitional zero = s0s1
-  -- pathLeft .Transition.Path.isTransitional (suc zero) = s1s0
-  -- -- pathLeft .Transition.Path.isTransitional (suc (suc i)) = let x = (path-i states steps i pathLeft) in {!Transition.Path.isTransitional!}
+  -- how to do coinduction
+  pathLeft : Path states steps
+  pathLeft .infSeq zero = s0
+  pathLeft .infSeq (suc zero) = s1
+  pathLeft .infSeq (suc (suc x)) = pathLeft .infSeq x
+  pathLeft .isTransitional zero = s0s1
+  pathLeft .isTransitional (suc zero) = s1s0
+  pathLeft .isTransitional (suc (suc i)) = pathLeft .isTransitional i
+
+  -- pathLeftOdd : Path states steps
+  -- pathLeft .infSeq zero = s0
+  -- pathLeft .infSeq (suc x) = pathLeftOdd .infSeq x
+  -- pathLeft .isTransitional zero = {!s0s1!}
+  -- pathLeft .isTransitional (suc i) = pathLeftOdd .isTransitional i
+  -- pathLeftOdd .infSeq zero = s1
+  -- pathLeftOdd .infSeq (suc x) = pathLeft .infSeq x
+  -- pathLeftOdd .isTransitional zero = {!s1s0!}
+  -- pathLeftOdd .isTransitional (suc i) = pathLeft .isTransitional i
+
+  -- pathLeft .infSeq x = if (even x) then s0 else s1
+  -- -- pathLeft .infSeq (suc zero) = {!!}
+  -- -- pathLeft .infSeq (suc (suc i)) = {!!}
+  -- pathLeft .isTransitional n with even n | odd n
+  -- pathLeft .isTransitional n | false | false = {!!}
+  -- pathLeft .isTransitional n | false | true = s1s0
+  -- pathLeft .isTransitional n | true | false = s0s1
+  -- pathLeft .isTransitional n | true | true = {!!}
+  -- -- pathLeft .isTransitional zero = s0s1
+  -- -- pathLeft .isTransitional (suc zero) = s1s0
+  -- -- pathLeft .isTransitional (suc (suc i)) = let x = (path-i states steps i pathLeft) in {!Transition.Path.isTransitional!}
   -- -- ... | false = {!!}
   -- -- ... | true = {!!}
   
