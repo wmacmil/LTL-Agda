@@ -76,12 +76,13 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
   open Path
 
   headPath : Path → State
-  headPath record { infSeq = infSeq ; isTransitional = isTransitional } = infSeq 0
+  headPath p = p .infSeq 0
 
   tailPath : Path → Path
-  tailPath record { infSeq = infSeq ; isTransitional = isTransitional } .Path.infSeq x = infSeq (suc x)
-  tailPath record { infSeq = infSeq ; isTransitional = isTransitional } .Path.isTransitional i = isTransitional (suc i)
+  tailPath p .infSeq x = p .infSeq (suc x)
+  tailPath p .isTransitional i = p .isTransitional (suc i)
 
+  -- path-i == drop
   path-i : ℕ → Path → Path
   path-i zero p = p
   path-i (suc i) p = path-i i (tailPath p)
@@ -110,6 +111,7 @@ module Transition (Atom : Set) (State : Set) (_⟶_ : rel State) where
     until : Path → ϕ Atom → ϕ Atom → Set
     until π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × upTil i π ψ
 
+    -- Definition 3.6
     _⊧_ : Path → ϕ Atom → Set
     π ⊧ ⊥        = ⊥'
     π ⊧ ⊤        = ⊤'
