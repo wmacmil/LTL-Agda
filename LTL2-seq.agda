@@ -1,6 +1,6 @@
 {-# OPTIONS --postfix-projections #-}
 
-module LTL-seq where
+module LTL2-seq where
 
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_)
@@ -43,14 +43,13 @@ relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
 
 
-record 𝑀 (Atom : Set) : Set₁ where
+record 𝑀 (Atom : Set) (State : Set) : Set₁ where
   field
-    State : Set
     _⟶_ : rel State
     relSteps : relAlwaysSteps _⟶_
     L : State → 𝑃 Atom
 
-module Transition (Atom : Set) (Model : 𝑀 Atom) where
+module Transition (Atom : Set) (State : Set) (Model : 𝑀 Atom State) where
   open Syntax Atom public
   open 𝑀 Model
 
@@ -66,6 +65,9 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
 
   headPath : Path → State
   headPath p = p .infSeq 0
+
+  pathStartsAt : Path → State → Set
+  pathStartsAt p s = (headPath p) ≡ s
 
   tailPath : Path → Path
   tailPath p .infSeq x = p .infSeq (suc x)
@@ -116,17 +118,23 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   -- a : 𝑀 Atom
   -- a = record { State = {!!} ; _⟶_ = {!!} ; relSteps = {!!} ; L = {!!} }
 
-module Model (Atom : Set) where
+module Model (Atom : Set) (State : Set) where
 
-  open Syntax Atom public
+  -- open Syntax Atom public
+  open Transition Atom State
 
-  a : {A B : Set} → (a : A × B) →  A --{!proj₁ A !} → Set
-  a ab = proj₁ ab
+  --Definition 3.7
+  _,_⊧_ : (M : 𝑀 Atom State) → State → ϕ M → Set
+  M , s ⊧ ψ = ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
 
-  -- --Definition 3.7
-  -- _,⊧_ : (M : 𝑀 Atom) → ϕ → Set
+  -- _,_⊧'_ : (M : 𝑀 Atom State) → (p : Path M) → (headPath M p) → ϕ M → Set
+  -- M , p ⊧' ψ = _⊧_ M p ψ
+  -- -- M , s ⊧ ψ = ? -- ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
+  --   -- where open M
+
+  -- pathStartsAt
   -- record { State = State ; _⟶_ = _⟶_ ; relSteps = relSteps ; L = L } ,⊧ x = ∀ (s : State) → {!  !}
-  -- -- M , s ⊧ ψ = {!M!}
+  -- M , s ⊧ ψ = {!M!}
 
 module Example1 where
 
@@ -166,13 +174,13 @@ module Example1 where
 
   open 𝑀
 
-  ex1IsTransitionSyst : 𝑀 atoms
-  ex1IsTransitionSyst .State = states
+  ex1IsTransitionSyst : 𝑀 atoms states
+  -- ex1IsTransitionSyst .State = states
   ex1IsTransitionSyst ._⟶_ = steps
   ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
   ex1IsTransitionSyst .L = l
 
-  open Transition atoms ex1IsTransitionSyst
+  open Transition atoms states ex1IsTransitionSyst
   open Path
 
   -- rightmost and leftmost branches on computation tree
@@ -201,6 +209,25 @@ module Example1 where
   alwaysEventuallyR zero = 1 , tt
   alwaysEventuallyR (suc zero) = 0 , tt
   alwaysEventuallyR (suc (suc i)) = alwaysEventuallyR i
+
+
+  -- oneLem : _⊧_ ex1IsTransitionSyst s0 ((atom p) ∧ (atom q))
+
+  open Model atoms states
+
+  -- one : ex1IsTransitionSyst , s0 ⊧ (p ∧ q)
+
+  -- -- one : ex1IsTransitionSyst , s0 ⊧ (p ∧ q)
+  -- one : _,_⊧'_ ex1IsTransitionSyst {!!} ((atom p) ∧ (atom q))
+  -- one = {!!}
+
+  -- one : _,_⊧_ ex1IsTransitionSyst s0 ((atom p) ∧ (atom q))
+  -- one M π = {!cong!} , {!!}
+  --   where
+  --     lemma : T (l (Transition.headPath _ _ _ M) p)
+  --     lemma = {!!}
+
+  -- ex1IsTransitionSyst
 
 -- character references
 -- <spc> h d c -- help describe character
