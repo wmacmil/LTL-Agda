@@ -268,19 +268,14 @@ module Example1 where
   ex-5 x | () , s2r
 
   ex-7 : M ,, s2 ⊧ G (atom r)
-  ex-7 π init with headPath π | (hd (tl (infSeq π)))
-  ex-7 π refl | .s2 | y = record { ∀-h = {!!} ; ∀-t = {!!} }
+  ex-7 π init
+    with headPath π | (hd (tl (infSeq π))) | headValid (isTransitional π)
+  ex-7 π refl | .s2 | s2 | s2s2 = record { ∀-h = {!!} ; ∀-t = ex-7 {!π!} {!!} }
     -- record {
     --   ∀-h = {!!} ;
     --   ∀-t = {!!} }
 
 
---   always-q-Left : _⊧_ ex1IsTransitionSyst pathLeft (atom q)
---   always-q-Left = tt
-
---   -- one : _,_⊧_ ex1IsTransitionSyst  ex1IsTransitionSyst s0 ((atom p) ∧ (atom q))
---   -- one record { infSeq = infSeq ; isTransitional = isTransitional } = {!infSeq!}
---   -- -- _,_⊧_ :
 
 
 -- -- character references
