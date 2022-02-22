@@ -288,9 +288,9 @@ module Example1 where
   ex-4 : M ,, s0 ⊧ X (atom r)
   ex-4 π π0=s0
     with headPath π | (π .infSeq 1) | (π .isTransitional 0)
-  -- ex-4 π refl | .s0 | y | z = {!z!}
-  ex-4 π refl | .s0 | s1 | x = s1r
-  ex-4 π refl | .s0 | s2 | x = s2r
+  ex-4 π refl | .s0 | y | z = {!z!}
+  -- ex-4 π refl | .s0 | s1 | x = s1r
+  -- ex-4 π refl | .s0 | s2 | x = s2r
 
   {-
   Can alternatively interpret the negation inside the formula
