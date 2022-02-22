@@ -248,9 +248,14 @@ module Example1 where
   --can also quantify over initial state
   -- r comes after p
 
-  -- extensionality would come in handy
-  always-q-2 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ G (F (atom p)) → path ≡ pathLeft
-  always-q-2 record { initial = s0 ; infSeq = infSeq ; initialSteps = initialSteps ; isTransitional = isTransitional } refl y = {!!}
+  --idea of goesRight?
+
+  always-q-2 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ F (atom r) → (path .infSeq) ≡ (pathRight .infSeq)
+  always-q-2 record { initial = .s0 ; infSeq = infSeq₁ ; initialSteps = initialSteps₁ ; isTransitional = isTransitional₁ } refl y = {!!} -- but then we know that infSeq₁ of i is always s2, how do we say this
+
+  -- -- extensionality would come in handy
+  -- always-q-2 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ G (F (atom p)) → path ≡ pathLeft
+  -- always-q-2 path isS0 y = {!!}
 
   -- always-q-2 : ∀ (path : Path) → (path .initial ≡ s0) → path ⊧ ((G (F (atom p))) ⇒ (G (F (atom r))))
 
