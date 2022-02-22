@@ -23,9 +23,6 @@ module Syntax (Atom : Set) where
     X F G       : ϕ → ϕ
     _U_ _W_ _R_ : ϕ → ϕ → ϕ
 
-  -- isSubForm : ϕ → ϕ → Set
-  -- isSubForm ψ phi = {!phi \!}
-
 rel : Set → Set₁
 rel s = s → s → Set
 
@@ -41,7 +38,6 @@ empt true = false
 
 relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
-
 
 record 𝑀 (Atom : Set) (State : Set) : Set₁ where
   field
@@ -144,13 +140,13 @@ module Model (Atom : Set) (State : Set) where
   _,⊧_ : (M : 𝑀 Atom State) → ϕ M → Set
   _,⊧_ M ψ = ∀ (p : Path M) → _⊧_ M p ψ
 
-  -- -- M , s ⊧ ψ = ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
-  -- M , s ⊧ ψ = ∀ (p : Path M) → _⊧_ M (p.infSeq 0) ψ
+  -- M , s ⊧ ψ = ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
+  M , s ⊧ ψ = ∀ (p : Path M) → _⊧_ M (p.infSeq 0) ψ
 
   -- _,_⊧'_ : (M : 𝑀 Atom State) → (p : Path M) → (headPath M p) → ϕ M → Set
   -- M , p ⊧' ψ = _⊧_ M p ψ
-  -- -- M , s ⊧ ψ = ? -- ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
-  --   -- where open M
+  -- M , s ⊧ ψ = ? -- ∀ (p : Path M) → (π : pathStartsAt M p s) → _⊧_ M p ψ
+    -- where open M
 
   -- pathStartsAt
   -- record { State = State ; _⟶_ = _⟶_ ; relSteps = relSteps ; L = L } ,⊧ x = ∀ (s : State) → {!  !}
