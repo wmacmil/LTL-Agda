@@ -334,16 +334,31 @@ module Example1 where
   lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
   lemma π (fst , s2r) | .s2 = refl
 
+  ex-9-ii : pathLeft ⊧ (G (F (atom p)))
+  ex-9-ii zero = 0 , s0p
+  ex-9-ii (suc zero) = 1 , s0p
+  ex-9-ii (suc (suc n)) = ex-9-ii n
+
+  -- ex-9-ii zero | x | s0 | z = 1 , {!!}
+  -- ex-9-ii (suc zero) | x | s0 | s0s1 = 0 , {!!}
+  -- ex-9-ii (suc (suc n)) | x | s0 | s0s1 = ex-9-ii n
+
+  -- ex-9-iii : ¬' (pathRight ⊧ ((G (F (atom p)))))
+  -- ex-9-iii f = ⊥-elim {!f!}
+  -- -- ex-9-iii : pathRight ⊧ (¬ (G (F (atom p))))
+  -- -- ex-9-iii n with (pathLeft .infSeq 0) | (pathLeft .isTransitional 0)
+  -- -- ex-9-iii n | s0 | s0s1 = ⊥-elim {!n!}
+
   -- do we apply path-i to this problem
   -- path-i : ℕ → Path → Path
 
-  -- what i want
-  ex-8 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
-  ex-8 π init (zero , snd) =  let x' = lemma π snd in {!!}
-    -- obvious contradiction
-  ex-8 π init (suc n , n⊧¬q , n⊧r) = --{!!}
-    -- ex-8-s2 (path-i {!suc n!} π) (lemma {!!} (n⊧¬q , n⊧r)) ({!!} , ({!!} , {!!}))
-    ex-8-s2 ((path-i {!suc n!} π)) (lemma (path-i {!suc n!} π) (n⊧¬q , n⊧r)) (suc n , (n⊧¬q , n⊧r))
+  -- -- what i want
+  -- ex-8 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  -- ex-8 π init (zero , snd) =  let x' = lemma π snd in {!!}
+  --   -- obvious contradiction
+  -- ex-8 π init (suc n , n⊧¬q , n⊧r) = --{!!}
+  --   -- ex-8-s2 (path-i {!suc n!} π) (lemma {!!} (n⊧¬q , n⊧r)) ({!!} , ({!!} , {!!}))
+  --   ex-8-s2 ((path-i {!suc n!} π)) (lemma (path-i {!suc n!} π) (n⊧¬q , n⊧r)) (suc n , (n⊧¬q , n⊧r))
 
   -- ex-8 π init (Transition.ev-T x) = {!!}
 

@@ -288,6 +288,9 @@ module Example1 where
       --   init
       --   (headValid (isTransitional π)))
 
+  ex-9-i : pathLeft ⊧ (G (F (atom r)))
+  ex-9-i .Transition.G-pf.∀-h = ev-T (ev-T {!!})
+  ex-9-i .Transition.G-pf.∀-t = {!!}
 
   -- why?
   -- the left path clearly has no state with both, since its only s0s and s1s
