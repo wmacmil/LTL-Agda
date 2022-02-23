@@ -287,9 +287,8 @@ module Example1 where
   ex-4 : M ,, s0 ⊧ X (atom r)
   ex-4 π π0=s0
     with headPath π | (π .infSeq 1) | (π .isTransitional 0)
-  ex-4 π refl | .s0 | y | z = {!z!}
-  -- ex-4 π refl | .s0 | s1 | x = s1r
-  -- ex-4 π refl | .s0 | s2 | x = s2r
+  ex-4 π refl | .s0 | s1 | x = s1r
+  ex-4 π refl | .s0 | s2 | x = s2r
 
   {-
   Can alternatively interpret the negation inside the formula
@@ -303,11 +302,12 @@ module Example1 where
   ex-5 x with x pathRight refl
   ex-5 x | () , s2r
 
-  -- -- why?
-  -- -- the left path clearly has no state with both, since its only s0s and s1s
-  -- -- any s2 has only r
   -- ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
-  -- ex-6 π π0=s0 n p'
+  -- ex-6 π π0=s0 n (fst , snd) = {!!}
+  -- --   with headPath π | (π .infSeq 1) | (π .isTransitional 0)
+  -- -- ex-6 π refl n (fst , snd) | .s0 | .s1 | s0s1 = {!!}
+  -- -- ex-6 π refl n (fst , snd) | .s0 | .s2 | s0s2 = {!!}
+  -- -- ex-6 π x (suc i) x₁ = {!!}
 
 
   lemma0 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
@@ -325,6 +325,30 @@ module Example1 where
       (lemma0 π init)
       n
 
+  ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8-s2 π init x₁ = 0 , (ex-7 π init)
+
+  lemma : ∀ p → p ⊧ ((¬ (atom q)) ∧ atom r) → headPath p ≡ s2
+  lemma π x
+    with headPath π
+  lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
+  lemma π (fst , s2r) | .s2 = refl
+
+  -- do we apply path-i to this problem
+  -- path-i : ℕ → Path → Path
+
+  -- what i want
+  ex-8 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8 π init (zero , snd) =  let x' = lemma π snd in {!!}
+    -- obvious contradiction
+  ex-8 π init (suc n , n⊧¬q , n⊧r) = --{!!}
+    -- ex-8-s2 (path-i {!suc n!} π) (lemma {!!} (n⊧¬q , n⊧r)) ({!!} , ({!!} , {!!}))
+    ex-8-s2 ((path-i {!suc n!} π)) (lemma (path-i {!suc n!} π) (n⊧¬q , n⊧r)) (suc n , (n⊧¬q , n⊧r))
+
+  -- ex-8 π init (Transition.ev-T x) = {!!}
+
+
+  -- for ex-7
   -- can additionally use the following
   -- helper : ∀ u w → u ≡ s2 → steps u w → w ≡ s2
   -- helper .s2 .s2 refl s2s2 = refl
@@ -351,23 +375,23 @@ module Example1 where
   lemmaLemma' : (path : Path) (n : ℕ) → (path-i 100 path .infSeq 0) ≡ (path .infSeq 100)
   lemmaLemma' path n = refl
 
-  -- how to prove this? is this a relevant lemma, really?
-  -- it shouldn't relatively simple, but also
-  lemmaLemma : (path : Path) (n : ℕ) → (path-i n path .infSeq 0) ≡ (path .infSeq n)
-  lemmaLemma path zero = refl
-  lemmaLemma path (suc n) = {!!}
-    where
-    -- ih : path-i n path .infSeq 0 ≡ path .infSeq n
-      ih = lemmaLemma path n
+  -- -- how to prove this? is this a relevant lemma, really?
+  -- -- it shouldn't relatively simple, but also
+  -- lemmaLemma : (path : Path) (n : ℕ) → (path-i n path .infSeq 0) ≡ (path .infSeq n)
+  -- lemmaLemma path zero = refl
+  -- lemmaLemma path (suc n) = {!!}
+  --   where
+  --   -- ih : path-i n path .infSeq 0 ≡ path .infSeq n
+  --     ih = lemmaLemma path n
 
-  -- path-i : ℕ → Path → Path
-  -- this seems like the canonical piece of information needed for exercise 7
-  lemmai : (p : Path) → headPath p ≡ s2 → (i : ℕ) → headPath (path-i i p) ≡ s2
-  lemmai π init zero with headPath π
-  lemmai π refl zero | .s2 = refl
-  lemmai π init (suc n)
-    with headPath π | (path-i n (tailPath π) .infSeq 0) | (path-i n (tailPath π) .isTransitional 0)
-  lemmai π refl (suc n) | .s2 | x | y = {!x!}
+  -- -- path-i : ℕ → Path → Path
+  -- -- this seems like the canonical piece of information needed for exercise 7
+  -- lemmai : (p : Path) → headPath p ≡ s2 → (i : ℕ) → headPath (path-i i p) ≡ s2
+  -- lemmai π init zero with headPath π
+  -- lemmai π refl zero | .s2 = refl
+  -- lemmai π init (suc n)
+  --   with headPath π | (path-i n (tailPath π) .infSeq 0) | (path-i n (tailPath π) .isTransitional 0)
+  -- lemmai π refl (suc n) | .s2 | x | y = {!x!}
 
   -- lemmai π x n
   --   with headPath π

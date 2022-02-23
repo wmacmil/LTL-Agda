@@ -98,9 +98,6 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   -- drop 0 x = x
   -- drop (suc n) x = tailPath (drop n x)
 
-  -- module _ (M : 𝑀) where
-  --   open 𝑀 M
-
   record G-pf (ψ : Path → Set) (π : Path) : Set where
     coinductive
     field
@@ -108,8 +105,8 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
       ∀-t : G-pf ψ (tailPath π)
 
   data F-pf (P : Path → Set) (σ : Path) : Set where
-    ev_h : P σ → F-pf P σ
-    ev_t : F-pf P (tailPath σ) -> F-pf P σ
+    ev-H : P σ → F-pf P σ
+    ev-T : F-pf P (tailPath σ) -> F-pf P σ
 
   data U-Pf (P Q : Path → Set) (σ : Path) : Set where
     until-h : Q σ → (U-Pf P Q) σ
@@ -283,15 +280,56 @@ module Example1 where
   ex-7 π init .G-pf.∀-h rewrite init = s2r
   ex-7 π init .G-pf.∀-t =
     ex-7
-      (tailPath π)
+      (tailPath π) -- (tailPath π)
       (lemma0 π init)
-      -- (helper 
+      -- (helper
       --   (headPath π)
       --   (hd (tl (infSeq π)))
       --   init
       --   (headValid (isTransitional π)))
 
 
+  -- why?
+  -- the left path clearly has no state with both, since its only s0s and s1s
+  -- any s2 has only r
+  ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
+  ex-6 π π0=s0 .G-pf.∀-h rewrite π0=s0 =
+    λ {()}
+  ex-6 π π0=s0 .G-pf.∀-t = ex-6 {!!} {!!} -- ex-6 (tailPath π) {!help!}
+
+  ex-8-s2-lemma : (M ,, s2 ⊧ ((F (G (atom r)))))
+  ex-8-s2-lemma π init =
+    ev-H (ex-7 π init)
+
+  ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8-s2 π init x₁ = ev-H (ex-7 π init) --  let y = ex-8-s2-lemma in y π x
+  -- something like const . ev-H . ex-y
+
+  --can think of example 8 as three lemmas?
+  -- ex-8-s1 : (M ,, s1 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  -- ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+-- if we know ¬q∧r at some point in the future
+-- then we can break it down into two cases :
+-- (i) ev-H - its now.
+--   In this case, we know that we must already be in S2. (lemma?)
+--   Then we reach a contradiction?
+-- (ii) ev-T. In the later case, we can say that
+-- Take whenever that is (
+
+  lemma : ∀ p → p ⊧ ((¬ (atom q)) ∧ atom r) → headPath p ≡ s2
+  lemma π x
+    with headPath π
+  lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
+  lemma π (fst , s2r) | .s2 = refl
+
+  -- can we call one of the others as a lemma, like when it does start at s2
+  ex-8-s0 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8-s0 π init
+    with headPath π
+  ex-8-s0 π refl | .s0 = λ {
+  -- ex-8-s0 π init | headπ = λ {
+    (Transition.ev-H x) → let x' = lemma π x in {!!} ; -- how to derive this contradiction?
+    (Transition.ev-T x) → {!x!}} -- want to recursively call the ex-8-s0 case
 
 
 
