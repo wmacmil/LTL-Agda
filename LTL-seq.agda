@@ -40,7 +40,6 @@ empt true = false
 relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
 
-
 {-
 Refactored so-as to allow for easier (more infomrative) proofs
 Originally had
@@ -310,22 +309,38 @@ module Example1 where
   -- ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
   -- ex-6 π π0=s0 n p'
 
+
+  lemma0 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
+  lemma0 π x
+    with headPath π | (π .infSeq 1) | (π .isTransitional 0)
+  lemma0 π refl | .s2 | s2 | a = refl
+
   -- How to use the inductive Hypothesis
   ex-7 : M ,, s2 ⊧ G (atom r)
   ex-7 π π0=s0 zero with headPath π
   ex-7 π refl zero | .s2 = s2r
-  ex-7 π π0=s0 (suc n) with headPath π
-  ex-7 π init (suc n) | x = {!ex-7 π ? n!}
+  ex-7 π init (suc n) = -- | x' | .s2 | z = --  {!!}
+    ex-7
+      (tailPath π)
+      (lemma0 π init)
+      n
 
+  -- can additionally use the following
+  -- helper : ∀ u w → u ≡ s2 → steps u w → w ≡ s2
+  -- helper .s2 .s2 refl s2s2 = refl
+      -- (helper
+      --   (headPath π)
+      --   (headPath (tailPath π))
+      --   init
+      --   (π .isTransitional 0))
+
+-- ex-7 π init .G-pf.∀-h rewrite init = s2r
+-- ex-7 π init .G-pf.∀-t = ex-7 (tailPath π) (helper (headPath π) (hd (tl (infSeq π))) init (headValid (isTransitional π)) )
 
 
   -- below is Warrick trying to understand how to get at example 7
 
   -- that the path repeats itself
-  lemma0 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
-  lemma0 π x
-    with headPath π | (π .infSeq 1) | (π .isTransitional 0)
-  lemma0 π refl | .s2 | s2 | a = refl
 
   -- how can we avoid introducing all relevant info into the context
   lemma01 : (p : Path) → headPath p ≡ s2 → headPath (path-i 2 p) ≡ s2
