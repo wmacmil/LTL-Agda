@@ -267,10 +267,21 @@ module Example1 where
   ex-5 x with x pathRight refl
   ex-5 x | () , s2r
 
+  open import Function
+
+  -- helper : ∀ π (init : headPath π ≡ s2) → headPath (tailPath π) ≡ s2
+  helper : ∀ u w → u ≡ s2 → steps u w → w ≡ s2
+  helper .s2 .s2 refl s2s2 = refl
+
   ex-7 : M ,, s2 ⊧ G (atom r)
-  ex-7 π init
-    with headPath π | (hd (tl (infSeq π))) | headValid (isTransitional π)
-  ex-7 π refl | .s2 | s2 | s2s2 = record { ∀-h = {!!} ; ∀-t = ex-7 {!π!} {!!} }
+  -- ex-7 π init = record { ∀-h = subst (λ v → l' v r) (sym init) s2r ; ∀-t = {!!} }
+  ex-7 π init .G-pf.∀-h rewrite init = s2r
+  ex-7 π init .G-pf.∀-t = ex-7 (tailPath π) (helper (headPath π) (hd (tl (infSeq π))) init (headValid (isTransitional π)) )
+  -- ex-7 π init .G-pf.∀-t rewrite init with y <- hd (tl (infSeq π)) | x <- headValid (isTransitional π) = {!x y!}
+  -- ex-7 π init
+  --   with hd (infSeq π) | hd (tl (infSeq π)) | headValid (isTransitional π)
+  -- -- ex-7 π refl | .s2 | s2 | s2s2 = record { ∀-h = {!!} ; ∀-t = ex-7 {!π!} {!!} }
+  -- ex-7 π refl | .s2 | .s2 | s2s2 = record { ∀-h = {!s2r!} ; ∀-t = {!!} }
     -- record {
     --   ∀-h = {!!} ;
     --   ∀-t = {!!} }
