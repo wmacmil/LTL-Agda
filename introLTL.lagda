@@ -55,10 +55,29 @@ units by which time is measured, but LTL suppresses more complex notions of the
 units by which time is kept as well as the possible worlds branches, a
 simpifying assuption we'll accept for the time being.
 
-We base this formalization off Huth \& Ryan's introductory account in \emph{LOGIC IN COMPUTER SCIENCE}
+We base this formalization off Huth \& Ryan's introductory account in
+\emph{LOGIC IN COMPUTER SCIENCE}. We shall highlight differences with their
+presentation, as well as differences with other pieces of our system as they
+arrive.
 
-The syntax of LTL consists of atomic events (which should ideally be grounded to reality), the normal logical colletives, and
+The syntax of LTL is are formulas $\phi$ inductively defined type consists of
 
+\begin{itemize}
+\item Atomic events (which should ideally be grounded to reality), specified externally as some type
+\item The standard propositional colletives for truthity, falsity, conjunction, disjunction, and negation
+\item Unary temporal operators representing
+\begin{itemize}
+\item the next state $X$,
+\item the existence of a future state $F$,
+\item the notion of henceforth, or forever $G$
+\end{itemize}
+\item Binary temporal operators representing
+\begin{itemize}
+\item The inclusive states in between two events next state $U$,
+\item weak until $W$
+\item Release
+\end{itemize}
+\end{itemize}
 
 \begin{code}
   data ϕ : Set where
@@ -70,12 +89,7 @@ The syntax of LTL consists of atomic events (which should ideally be grounded to
     X F G       : ϕ → ϕ
     _U_ _W_ _R_ : ϕ → ϕ → ϕ
 \end{code}
-
-
-\begin{code}
-rel : Set → Set₁
-rel s = s → s → Set
-
+\begin{code}[hide]
 -- power set
 𝑃 : Set → Set
 𝑃 s = s → Bool
@@ -85,10 +99,29 @@ rel s = s → s → Set
 empt : 𝑃 Bool
 empt false = false
 empt true = false
+\end{code}
+
+This syntax represents a weak boundary of this study. The job of actual
+determining how a formula should pertain to reality can be best left to other
+experts. Nonetheless, as verifiability has been a primary pretext for this work,
+and our development of the semantcs demonstrate Agda's expressivitness,
+elegance, and enforcement of correct-by-consturction programs. Noting that a
+binary relation $rel$ is a higher type over a type $s$ - a type of types indexed by two
+elements of $s$, we can then define the property of a relation always being able
+to take another step. That is, for any element of $s$, we can always construct a
+element $s'$ which it is related to, that it always steps to.
+
+\begin{code}
+rel : Set → Set₁
+rel s = s → s → Set
 
 relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
+\end{code}
 
+
+
+\begin{code}
 record 𝑀 (Atom : Set) : Set₁ where
   field
     State : Set
