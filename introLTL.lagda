@@ -41,7 +41,7 @@ The primary ideas that we lean on are in motivating our development are :
 We believe that the modalities of quanitfying events in time with regards to
 \emph{some future time} and \emph{forever} admit a mathematically coherent
 theory in addition to offering philosophically interesting and practical
-questions. Despite being more computationally complex than propisitional logic,
+questions. Despite having higher computational complexity than propisitional logic,
 our application of for relatively simple route planning don't require
 particularly large formulas, and so the complexity of ensuring proper
 translations from natural language (in addition to other components) is of a
@@ -49,11 +49,11 @@ much bigger concern than computational complextiy.
 
 The main idea of temporal logics is that events, which may be abstract or
 grounded in reality, take place sequentially. Our everyday language captures
-this with notions of before, after, in between, forever, later, until, and so-on
+this with notions of before, after, between, forever, later, until, and so-on
 (pun intendend). The explicit type of order may be up to debate, as well as the
 units by which time is measured, but LTL suppresses more complex notions of the
-units by which time is kept as well as the possible worlds branches, a
-simpifying assuption we'll accept for the time being.
+continuous time (at least from a computational view), as well as the branching over possible worlds seen in CTL, 
+simpifying assuptions we'll accept for the time being.
 
 We base this formalization off Huth \& Ryan's introductory account in
 \emph{LOGIC IN COMPUTER SCIENCE}. We shall highlight differences with their
@@ -119,7 +119,18 @@ relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
 \end{code}
 
+A dichotomy over the epistemological status of logic that is whether logical knowledge
+is primarily about inference, in the proof theoretic traditions, or truth, in the model
+theoretic traditions, can be both juxtaposed and understood better in our work here.
 
+Theorem provers have often promote ``syntactic view'' of logic, with programs and proofs derivations ruling due to the undecidable notion of generating a proof object for a given type.
+
+The ``semantic view'' is much more well esablished in the verification
+community, where model checkers, whose primary notion is of ``a model'', and
+what the feasibility or truth of a piece of syntax means relative to some (or
+possibly all) models.
+
+We now come to fundamental notion in defining a temporal logic,
 
 \begin{code}
 record 𝑀 (Atom : Set) : Set₁ where
