@@ -386,7 +386,7 @@ module Example1 where
   ex-3 π init = tt
 
   ex-4 : M ,, s0 ⊧ X (atom r)
-    ex-4 π π0=s0
+  ex-4 π π0=s0
     with headPath π | (hd (tl (infSeq π))) | headValid (isTransitional π)
   ex-4 π refl | .s0 | s1 | z = s1r
   ex-4 π refl | .s0 | s2 | z = s2r
@@ -403,3 +403,10 @@ module Example1 where
     --   ∀-h = {!!} ;
     --   ∀-t = {!!} }
 \end{code}
+
+
+
+
+-- -- character references
+-- -- 𝑀 == \MiM
+-- -- 𝑃 == \MiP

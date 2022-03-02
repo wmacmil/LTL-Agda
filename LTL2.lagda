@@ -2,7 +2,7 @@
 {-# OPTIONS --postfix-projections #-}
 {-# OPTIONS --guardedness #-}
 
-module introLTL where
+module LTL2 where
 
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 open import Data.Nat
@@ -174,19 +174,26 @@ defined by
 \item The mathematicians view of a sequence, that is a set, of states, indexed by the natural numbers
 \end{itemize}
 
-Given a model defined in the context of some atoms, we first outline the stream approach. A stream, often analagously referenced as an ``infinite list'', is given by a piece of visibile data, the head, and the tail, which is just a corecursive reference to another list whose data will be accessible later, when it is \emph{needed} (hence it is a fundamental datatype in the call-by-need operational semantics).
+Given a model defined in the context of some atoms, we first outline the stream
+approach. A stream, often analagously referenced as an ``infinite list'', is
+given by a piece of visibile data, the head, and the tail, which is just a
+corecursive reference to another list whose data will be accessible later, when
+it is \emph{needed} (hence, streams are a fundamental datatype in the call-by-need
+operational semantics).
 
 \begin{code}[hide]
 module Transition (Atom : Set) (Model : 𝑀 Atom) where
   open Syntax Atom public
-
+  open 𝑀 Model
+\end{code}
+\begin{code}
   record Stream : Set where
     coinductive
     field
       hd : State
       tl : Stream
 \end{code}
-\begin{code}[hide]
+\begin{code}
   open Stream
 
   from-ithState : (i : ℕ) → Stream → Stream
@@ -194,12 +201,18 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   from-ithState (suc i) x = from-ithState i (tl x)
 \end{code}
 
-We can therefore call a 
+% TODO : elaborate infSeq with colors as was done in masters thesis
+
+To define a path in a model, we need an inifinite sequence of states $infSeq$
+that don't reach a stuck, or deadlocked state - $infSeq$ always transitions. We
+say that the stream always transitions when the first two elements are related
+by the models step function, and we can coinductively prove this for the tail of
+the stream. The second state, \emph{nextState} of a stream is obviously defined
+by taking the head of the tail of the stream.
 
 \begin{code}
   nextState : Stream → State
   nextState s = hd (tl s)
-
 
   record streamAlwaysTransitions (stream : Stream) : Set where
     coinductive
@@ -211,41 +224,100 @@ We can therefore call a
     field
       infSeq         : Stream
       isTransitional : streamAlwaysTransitions infSeq
-
+\end{code}
+\begin{code}[hide]
   open streamAlwaysTransitions
   open Path
+\end{code}
 
+As paths not only contain infinite sequence of states which cohere with the
+model's step relation, we define two helper functions to overload the head and
+tail operations of the path's stream onto to the path itself.
+
+\begin{code}
   headPath : Path → State
   headPath x = hd (infSeq x)
 
   tailPath : Path → Path
   tailPath p .infSeq         = tl (infSeq p)
   tailPath p .isTransitional = tailValid (isTransitional p)
+\end{code}
 
-  -- drop : ℕ → Path → Path
-  -- drop 0 x = x
-  -- drop (suc n) x = tailPath (drop n x)
+We now contrast this with the mathematical view of a path, that is, we bypass
+the coiinductive stream and simply that the structure of the path is given my a
+map ℕ → State. We then adjust our definition of the propery of deadlock freedom.
+The alwaysSteps function says, that given a sequence of states $s$, $s_i$ steps
+to $s_{i+1}$ for any number $i$. Again, this is all relative to some given model
+$M$.
 
-  -- module _ (M : 𝑀) where
-  --   open 𝑀 M
+\begin{code}[hide]
+  alwaysSteps : (sₙ : ℕ → State) → Set
+  alwaysSteps s = ∀ i → s i ⟶ s (suc i)
 
-  record G-pf (ψ : Path → Set) (π : Path) : Set where
+  record Path-seq : Set where
+    field
+      infSeq         : ℕ → State
+      isTransitional : alwaysSteps infSeq
+\end{code}
+
+
+With this infastructure in place, we can finally define what it means for
+formulas ϕ to be true relative to some path in a model. This definition, per
+usual, is given by a type denoted via the semantic entailment relation _⊧_,
+where π ⊧ ψ is the evidence for the truth of proposition ψ relative to path π in
+our model. The fundamental temporal logical notions will be spelled out now as
+they are requisite pieces of this definition of truth.
+
+Glancing below, we see that the temporal type definitions involves a paramater
+(-⊧ψ : Path → Set), which, as the variable name suggests, is to be substituted
+by the semantic entailment applied to a sentence ψ. Although not mutually
+recursive, these definitions should be thought of as such - and indeed they are
+with alternative formulation of paths.
+
+The idea of the universal quantifier captured via a temporal modality, the
+notion of ``forever'' or ``global'', syntactically called $G$, has a meaning
+which is a coinductive record G-pf. This G-pf type requires evidance both that a
+path π entails the formula ψ and will do so henceforth. More specifically,
+knowing that the the path π yields ψ true now, ∀-h and forever onward the tail
+of path π will yield ψ true, ∀-t, we may conclude that our model retains ψ
+globally in time over the path π.
+
+\begin{code}
+  record G-pf (-⊧ψ : Path → Set) (π : Path) : Set where
     coinductive
     field
-      ∀-h : ψ π
-      ∀-t : G-pf ψ (tailPath π)
+      ∀-h : -⊧ψ π
+      ∀-t : G-pf -⊧ψ (tailPath π)
+\end{code}
 
-  data F-pf (P : Path → Set) (σ : Path) : Set where
-    ev_h : P σ → F-pf P σ
-    ev_t : F-pf P (tailPath σ) -> F-pf P σ
+To capture the notion of \emph{some} future state as temporal modality, one
+recognizes that the existential quantifier is being restricted to yield the $F$
+operator. However, in this case we just have to prove that a proposition ψ is
+entailed by some possibly later part of path a σ. More explictly, we can give
+evidence for $F ψ$ via an inductive type F-pf. If we currently know that σ ⊧ ψ ,
+then we know that there exists such a time that ψ is true over the path σ,
+namely now. On the other hand, if we can prove that the tail of σ entails ψ at
+some later time, then σ itself yields a futre state where ψ is true.
 
-  data U-Pf (P Q : Path → Set) (σ : Path) : Set where
-    until-h : Q σ → (U-Pf P Q) σ
-    until-t : P σ → (U-Pf P Q) (tailPath σ) → (U-Pf P Q) σ
+\begin{code}
+  data F-pf (-⊧ψ : Path → Set) (σ : Path) : Set where
+    ev-H : -⊧ψ σ → F-pf -⊧ψ σ
+    ev-T : F-pf -⊧ψ (tailPath σ) -> F-pf -⊧ψ σ
+\end{code}
 
-  data Uincl-Pf (P Q : Path → Set) (σ : Path) : Set where
-    untilI-h : P σ → Q σ → (Uincl-Pf P Q) σ
-    untilI-t : P σ → (Uincl-Pf P Q) (tailPath σ) → (Uincl-Pf P Q) σ
+
+
+\begin{code}
+  data U-Pf (-⊧ψ -⊧ψ₁ : Path → Set) (σ : Path) : Set where
+    until-h : -⊧ψ₁ σ → (U-Pf -⊧ψ -⊧ψ₁) σ
+    until-t : -⊧ψ σ → (U-Pf -⊧ψ -⊧ψ₁) (tailPath σ) → (U-Pf -⊧ψ -⊧ψ₁) σ
+\end{code}
+
+\begin{code}
+
+  data Uincl-Pf (-⊧ψ -⊧ψ₁ : Path → Set) (σ : Path) : Set where
+    untilI-h : -⊧ψ σ → -⊧ψ₁ σ → (Uincl-Pf -⊧ψ -⊧ψ₁) σ
+    untilI-t : -⊧ψ σ → (Uincl-Pf -⊧ψ -⊧ψ₁) (tailPath σ) → (Uincl-Pf -⊧ψ -⊧ψ₁) σ
 
   _⊧_ : Path → ϕ → Set
   π ⊧ ⊥        = ⊥'
@@ -258,7 +330,6 @@ We can therefore call a
   π ⊧ X ψ      = tailPath π ⊧ ψ
   π ⊧ F ψ      = F-pf (_⊧ ψ) π
   π ⊧ G ψ      = G-pf (_⊧ ψ) π
-  -- π ⊧ G ψ      = ∀ (n : ℕ) → drop n π ⊧ ψ
   π ⊧ (ψ U ψ₁) = U-Pf (_⊧ ψ) (_⊧ ψ₁) π
   π ⊧ (ψ W ψ₁) = (U-Pf (_⊧ ψ) (_⊧ ψ₁) π) ⊎ G-pf (_⊧ ψ) π
   π ⊧ (ψ R ψ₁) = Uincl-Pf (_⊧ ψ₁) (_⊧ ψ) π ⊎ G-pf (_⊧ ψ) π
@@ -386,7 +457,7 @@ module Example1 where
   ex-3 π init = tt
 
   ex-4 : M ,, s0 ⊧ X (atom r)
-    ex-4 π π0=s0
+  ex-4 π π0=s0
     with headPath π | (hd (tl (infSeq π))) | headValid (isTransitional π)
   ex-4 π refl | .s0 | s1 | z = s1r
   ex-4 π refl | .s0 | s2 | z = s2r
@@ -395,11 +466,78 @@ module Example1 where
   ex-5 x with x pathRight refl
   ex-5 x | () , s2r
 
+  open import Function
+
+  -- helper : ∀ π (init : headPath π ≡ s2) → headPath (tailPath π) ≡ s2
+  helper : ∀ u w → u ≡ s2 → steps u w → w ≡ s2
+  helper .s2 .s2 refl s2s2 = refl
+
+  lemma0 : ∀ p → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
+  lemma0 π x
+    with headPath π |  (hd (tl (infSeq π))) | headValid (isTransitional π)
+  lemma0 π refl | .s2 | s2 | a = refl
+
   ex-7 : M ,, s2 ⊧ G (atom r)
-  ex-7 π init
-    with headPath π | (hd (tl (infSeq π))) | headValid (isTransitional π)
-  ex-7 π refl | .s2 | s2 | s2s2 = record { ∀-h = {!!} ; ∀-t = ex-7 {!π!} {!!} }
-    -- record {
-    --   ∀-h = {!!} ;
-    --   ∀-t = {!!} }
+  -- ex-7 π init = record { ∀-h = subst (λ v → l' v r) (sym init) s2r ; ∀-t = {!!} }
+  ex-7 π init .G-pf.∀-h rewrite init = s2r
+  ex-7 π init .G-pf.∀-t =
+    ex-7
+      (tailPath π) -- (tailPath π)
+      (lemma0 π init)
+      -- (helper
+      --   (headPath π)
+      --   (hd (tl (infSeq π)))
+      --   init
+      --   (headValid (isTransitional π)))
+
+  ex-9-i : pathLeft ⊧ (G (F (atom r)))
+  ex-9-i .Transition.G-pf.∀-h = ev-T (ev-T {!!})
+  ex-9-i .Transition.G-pf.∀-t = {!!}
+
+  -- why?
+  -- the left path clearly has no state with both, since its only s0s and s1s
+  -- any s2 has only r
+  ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
+  ex-6 π π0=s0 .G-pf.∀-h rewrite π0=s0 =
+    λ {()}
+  ex-6 π π0=s0 .G-pf.∀-t = ex-6 {!!} {!!} -- ex-6 (tailPath π) {!help!}
+
+  ex-8-s2-lemma : (M ,, s2 ⊧ ((F (G (atom r)))))
+  ex-8-s2-lemma π init =
+    ev-H (ex-7 π init)
+
+  ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8-s2 π init x₁ = ev-H (ex-7 π init) --  let y = ex-8-s2-lemma in y π x
+  -- something like const . ev-H . ex-y
+
+  --can think of example 8 as three lemmas?
+  -- ex-8-s1 : (M ,, s1 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  -- ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+-- if we know ¬q∧r at some point in the future
+-- then we can break it down into two cases :
+-- (i) ev-H - its now.
+--   In this case, we know that we must already be in S2. (lemma?)
+--   Then we reach a contradiction?
+-- (ii) ev-T. In the later case, we can say that
+-- Take whenever that is (
+
+  lemma : ∀ p → p ⊧ ((¬ (atom q)) ∧ atom r) → headPath p ≡ s2
+  lemma π x
+    with headPath π
+  lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
+  lemma π (fst , s2r) | .s2 = refl
+
+  -- can we call one of the others as a lemma, like when it does start at s2
+  ex-8-s0 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8-s0 π init
+    with headPath π
+  ex-8-s0 π refl | .s0 = λ {
+  -- ex-8-s0 π init | headπ = λ {
+    (Transition.ev-H x) → let x' = lemma π x in {!!} ; -- how to derive this contradiction?
+    (Transition.ev-T x) → {!x!}} -- want to recursively call the ex-8-s0 case
+
+
+-- -- character references
+-- -- 𝑀 == \MiM
+-- -- 𝑃 == \MiP
 \end{code}

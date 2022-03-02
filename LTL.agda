@@ -79,6 +79,12 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
       headValid : hd stream ⟶ nextState stream
       tailValid : streamAlwaysTransitions (tl stream)
 
+  streamsAlwaysTransition : (stream : Stream) → streamAlwaysTransitions stream
+  streamsAlwaysTransition stream =
+    record {
+      headValid = {!!} ;
+      tailValid = {!!} }
+
   record Path : Set where
     field
       infSeq         : Stream
