@@ -248,9 +248,9 @@ the coiinductive stream and simply that the structure of the path is given my a
 map ℕ → State. We then adjust our definition of the propery of deadlock freedom.
 The alwaysSteps function says, that given a sequence of states $s$, $s_i$ steps
 to $s_{i+1}$ for any number $i$. Again, this is all relative to some given model
-$M$.
+$M$. Although these look quite different, we [TODO] prove they are equivalent elsewhere [link].
 
-\begin{code}[hide]
+\begin{code}
   alwaysSteps : (sₙ : ℕ → State) → Set
   alwaysSteps s = ∀ i → s i ⟶ s (suc i)
 
@@ -259,7 +259,27 @@ $M$.
       infSeq         : ℕ → State
       isTransitional : alwaysSteps infSeq
 \end{code}
+\begin{code}[hide]
+  open Path-seq
+\end{code}
 
+Once again inhereting the notion of head and tail from streams, we provide can
+overload these to our newly formulated sequence-based paths. In addition, we
+supply a function $path-i$ that drops the first n states of a path.
+
+
+\begin{code}[hide]
+  headPath-seq : Path-seq → State
+  headPath-seq p = p .infSeq 0
+
+  tailPath-seq : Path-seq → Path-seq
+  tailPath-seq p .infSeq          n = p .infSeq (suc n)
+  tailPath-seq p .isTransitional  n = p .isTransitional (suc n)
+
+  path-i : ℕ → Path-seq → Path-seq
+  path-i zero    p = p
+  path-i (suc i) p = path-i i (tailPath-seq p)
+\end{code}
 
 With this infastructure in place, we can finally define what it means for
 formulas ϕ to be true relative to some path in a model. This definition, per
@@ -297,7 +317,7 @@ entailed by some possibly later part of path a σ. More explictly, we can give
 evidence for $F ψ$ via an inductive type F-pf. If we currently know that σ ⊧ ψ ,
 then we know that there exists such a time that ψ is true over the path σ,
 namely now. On the other hand, if we can prove that the tail of σ entails ψ at
-some later time, then σ itself yields a futre state where ψ is true.
+some later time, then σ itself yields a future state where ψ is true.
 
 \begin{code}
   data F-pf (-⊧ψ : Path → Set) (σ : Path) : Set where
@@ -305,20 +325,28 @@ some later time, then σ itself yields a futre state where ψ is true.
     ev-T : F-pf -⊧ψ (tailPath σ) -> F-pf -⊧ψ σ
 \end{code}
 
+The until operator $U$ is the ``fundamental'' binary operator, meaning that some
+proposition ψ holds up til ψ₁. The proof of evaluation therefore takes a single
+path and two entailment operators partially applied to two different formulas.
+Evidence can be given if only the the second formula ψ₁ is a semantic
+consequence of the path σ, in which case the priorness of event ψ is irrelevant.
+In the tail case, until-t, if one can show that ψ is a consequence of σ, and
+that we can recursively validate ψ holds until ψ₁ under during the tail states
+of the σ, then we know that σ semantically entails ψ until ψ₁.
 
+Our final helper function,  Uincl-Pf, is similar to our previous until helper, except that we now require evidence that ψ is a consequence of σ in the head case where we don't dive deeper into the path σ.
 
 \begin{code}
   data U-Pf (-⊧ψ -⊧ψ₁ : Path → Set) (σ : Path) : Set where
     until-h : -⊧ψ₁ σ → (U-Pf -⊧ψ -⊧ψ₁) σ
     until-t : -⊧ψ σ → (U-Pf -⊧ψ -⊧ψ₁) (tailPath σ) → (U-Pf -⊧ψ -⊧ψ₁) σ
-\end{code}
-
-\begin{code}
 
   data Uincl-Pf (-⊧ψ -⊧ψ₁ : Path → Set) (σ : Path) : Set where
     untilI-h : -⊧ψ σ → -⊧ψ₁ σ → (Uincl-Pf -⊧ψ -⊧ψ₁) σ
     untilI-t : -⊧ψ σ → (Uincl-Pf -⊧ψ -⊧ψ₁) (tailPath σ) → (Uincl-Pf -⊧ψ -⊧ψ₁) σ
+\end{code}
 
+\begin{code}
   _⊧_ : Path → ϕ → Set
   π ⊧ ⊥        = ⊥'
   π ⊧ ⊤        = ⊤'
