@@ -5,7 +5,8 @@
 module LTL2 where
 
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
-open import Data.Nat
+open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_)
+-- open import Data.Nat
 open import Data.Unit renaming (⊤ to ⊤')
 open import Data.Empty renaming (⊥ to ⊥')
 open import Data.Sum
@@ -130,8 +131,15 @@ community, where model checkers, whose primary notion is of ``a model'', and
 what the feasibility, or truth, of a piece of syntax means relative to at least
 some models.
 
-We now come to fundamental notion in defining a temporal logic : a model. Given
-some atomic propositions (groundable to reality) a model 𝑀 in LTL consists of a
+We now define this notion of model so fundamental notion in logic, specific to
+our temporal setting. Used colloquially, a model represents an approximation of
+a complicated system with simpler and more understandable subsystem. Since a
+model is an abstraction which involves simplifying assumptions, it may only be
+faithful to certain behaviors of the system it is trying to capture, and indeed
+may contradict others.
+
+Given some atomic propositions (groundable to reality) a model 𝑀 in LTL consists
+of a
 
 \begin{itemize}
 \item Type of states
@@ -166,8 +174,8 @@ model - which is the primary ingredient to establish how a formula can be
 evaluated relative to sequence of events in a model. More explicitly, paths
 allow us to represent time. The choice of formulation of a path is also subject
 to how one interprets the infinte sequence of states over which our temporal
-intuitions and expressions take place. We can either see an infinite sequence as
-defined by
+expressions (and intuitions) take place. We can see an infinite sequence as
+defined by two possible conditions
 
 \begin{itemize}
 \item The coinductive type of streams over states, as done in \cite{coqLTL}
@@ -193,12 +201,8 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
       hd : State
       tl : Stream
 \end{code}
-\begin{code}
+\begin{code}[hide]
   open Stream
-
-  from-ithState : (i : ℕ) → Stream → Stream
-  from-ithState zero x    = x
-  from-ithState (suc i) x = from-ithState i (tl x)
 \end{code}
 
 % TODO : elaborate infSeq with colors as was done in masters thesis
@@ -230,6 +234,12 @@ by taking the head of the tail of the stream.
   open Path
 \end{code}
 
+While a model's step relation may allow more than one possible state that a
+given state can transition to, a path restricts this relation to be a function :
+it gives us the one and only one transition we can make, and gurantees that
+there is no sequence of states for which a possible intermediary transition is
+absent.
+
 As paths not only contain infinite sequence of states which cohere with the
 model's step relation, we define two helper functions to overload the head and
 tail operations of the path's stream onto to the path itself.
@@ -244,7 +254,7 @@ tail operations of the path's stream onto to the path itself.
 \end{code}
 
 We now contrast this with the mathematical view of a path, that is, we bypass
-the coiinductive stream and simply that the structure of the path is given my a
+the coinductive stream and assert that the structure of the path is given my a
 map ℕ → State. We then adjust our definition of the propery of deadlock freedom.
 The alwaysSteps function says, that given a sequence of states $s$, $s_i$ steps
 to $s_{i+1}$ for any number $i$. Again, this is all relative to some given model
@@ -268,18 +278,7 @@ overload these to our newly formulated sequence-based paths. In addition, we
 supply a function $path-i$ that drops the first n states of a path.
 
 
-\begin{code}[hide]
-  headPath-seq : Path-seq → State
-  headPath-seq p = p .infSeq 0
 
-  tailPath-seq : Path-seq → Path-seq
-  tailPath-seq p .infSeq          n = p .infSeq (suc n)
-  tailPath-seq p .isTransitional  n = p .isTransitional (suc n)
-
-  path-i : ℕ → Path-seq → Path-seq
-  path-i zero    p = p
-  path-i (suc i) p = path-i i (tailPath-seq p)
-\end{code}
 
 With this infastructure in place, we can finally define what it means for
 formulas ϕ to be true relative to some path in a model. This definition, per
@@ -325,16 +324,19 @@ some later time, then σ itself yields a future state where ψ is true.
     ev-T : F-pf -⊧ψ (tailPath σ) -> F-pf -⊧ψ σ
 \end{code}
 
-The until operator $U$ is the ``fundamental'' binary operator, meaning that some
-proposition ψ holds up til ψ₁. The proof of evaluation therefore takes a single
-path and two entailment operators partially applied to two different formulas.
-Evidence can be given if only the the second formula ψ₁ is a semantic
+The until operator $U$ is the ``fundamental'' binary temporal operator, meaning
+that some proposition ψ holds up til ψ₁. The proof of evaluation therefore takes
+a single path and two entailment operators partially applied to two different
+formulas. Evidence can be given if only the the second formula ψ₁ is a semantic
 consequence of the path σ, in which case the priorness of event ψ is irrelevant.
 In the tail case, until-t, if one can show that ψ is a consequence of σ, and
 that we can recursively validate ψ holds until ψ₁ under during the tail states
 of the σ, then we know that σ semantically entails ψ until ψ₁.
 
-Our final helper function,  Uincl-Pf, is similar to our previous until helper, except that we now require evidence that ψ is a consequence of σ in the head case where we don't dive deeper into the path σ.
+Our final helper function, Uincl-Pf, is similar to our previous until helper,
+except that we now require evidence that ψ is a consequence of σ in the head
+case, unitlI-h, where we don't dive deeper into the path σ. It is used in the
+so-called \emph{release} operator, which we elaorate below.
 
 \begin{code}
   data U-Pf (-⊧ψ -⊧ψ₁ : Path → Set) (σ : Path) : Set where
@@ -345,6 +347,33 @@ Our final helper function,  Uincl-Pf, is similar to our previous until helper, e
     untilI-h : -⊧ψ σ → -⊧ψ₁ σ → (Uincl-Pf -⊧ψ -⊧ψ₁) σ
     untilI-t : -⊧ψ σ → (Uincl-Pf -⊧ψ -⊧ψ₁) (tailPath σ) → (Uincl-Pf -⊧ψ -⊧ψ₁) σ
 \end{code}
+
+We now elaborate the meaning of our satisfaction relation, whose definition
+should be intuitive if one followed our definitions of the types above. The
+propositional operators are merely embedded in agda's type system in the usual
+curry-howard sense, recursively applying the semantic entail relation with in
+the unary and binary cases. In the case of an atomic formula $atom x$, we
+examine the if the labeling function assigns atom $x$ to the current state of π.
+Although our examples below [TODO : ref] use simple labeling functions, there is
+the possibility of defining an undecidable labeler (which the use of powersets
+restricts), in which case one might want to consider adding a decidability
+obligation in the definition of a model.
+
+Now for the temporal operats.
+
+The next operator, X_ , is given meaning by simply taking the path starting at
+the subsequent state in the path - exactly our tailPath function.
+
+We simply apply the work forward, global, and until operations all derive their meaning from the types we elaborated above, whereby the possible recursive steps are called their.
+
+The final operations are ``weak until'', W, and ``release'', R. The ψ W ψ₁
+until, means that, relative to path π, ψ holds until ψ₁, or ψ holds globally
+already. A corollary is that any formula which holds globally over π also holds
+weakly until any arbitrary formula ψ₁. Additionally, any any formula ψ which
+holds until ψ₁ also satisfies the condition of holding weakly until ψ₁.
+
+The binary release operation, ψ R ψ₁, and which is dual to until, says that, in the case
+where ψ isn't by default globally true over π, there is a state in the path π where both ψ and ψ₁ are both true at the same time, which is why needed the extra evidence in until-h above.
 
 \begin{code}
   _⊧_ : Path → ϕ → Set
@@ -361,17 +390,111 @@ Our final helper function,  Uincl-Pf, is similar to our previous until helper, e
   π ⊧ (ψ U ψ₁) = U-Pf (_⊧ ψ) (_⊧ ψ₁) π
   π ⊧ (ψ W ψ₁) = (U-Pf (_⊧ ψ) (_⊧ ψ₁) π) ⊎ G-pf (_⊧ ψ) π
   π ⊧ (ψ R ψ₁) = Uincl-Pf (_⊧ ψ₁) (_⊧ ψ) π ⊎ G-pf (_⊧ ψ) π
+\end{code}
+
+This duality, in the sense that ¬ (¬ ψ R ¬ ψ₁) ≣ ψ U ψ₁ and ¬ (¬ ψ U ¬ ψ₁) ≣ ψ R
+ψ₁, works in a non-constructive setting of Huth & Ryan's text, but not in Agda,
+whose type theory is constructive. One could also introduce a strong release
+dual to weak until, but this is not necessary for our purposes, as translating
+from natural language to these more nuanced operators is certain to be a much
+bigger challenge than here.
+
+\begin{code}[hide]
+  headPath-seq : Path-seq → State
+  headPath-seq p = p .infSeq 0
+
+  tailPath-seq : Path-seq → Path-seq
+  tailPath-seq p .infSeq          n = p .infSeq (suc n)
+  tailPath-seq p .isTransitional  n = p .isTransitional (suc n)
+
+  path-i : ℕ → Path-seq → Path-seq
+  path-i zero    p = p
+  path-i (suc i) p = path-i i (tailPath-seq p)
+\end{code}
+
+\begin{code}
+  mutual
+\end{code}
+\begin{code}
+
+    future : Path-seq → ϕ → Set
+    future π ψ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ
+
+\end{code}
+\begin{code}
+    global : Path-seq → ϕ → Set
+    global π ψ = ∀ i → (path-i i π) ⊧' ψ
+
+\end{code}
+\begin{code}
+    justUpTil : ℕ → Path-seq → ϕ → Set
+    justUpTil i π ψ = ∀ (j : ℕ) → j <' i → (path-i j π) ⊧' ψ
+
+\end{code}
+\begin{code}
+    upTil : ℕ → Path-seq → ϕ → Set
+    upTil i π ψ = ∀ (j : ℕ) → j ≤' i → (path-i j π) ⊧' ψ
+
+\end{code}
+\begin{code}
+    -- can rewrite with future in first clause
+    justUntil : Path-seq → ϕ → ϕ → Set
+    justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ₁ × justUpTil i π ψ
+
+\end{code}
+\begin{code}
+    until : Path-seq → ϕ → ϕ → Set
+    until π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ₁ × upTil i π ψ
+
+\end{code}
+\begin{code}
+    -- Definition 3.6
+    _⊧'_ : Path-seq → ϕ → Set
+    π ⊧' ⊥        = ⊥'
+    π ⊧' ⊤        = ⊤'
+    π ⊧' atom p   = L (headPath-seq π ) p
+    π ⊧' (¬ ψ)    = ¬' (π ⊧' ψ)
+    π ⊧' (ψ ∨ ψ₁) = (π ⊧' ψ) ⊎ (π ⊧' ψ₁)
+    π ⊧' (ψ ∧ ψ₁) = (π ⊧' ψ) × (π ⊧' ψ₁)
+    π ⊧' (ψ ⇒ ψ₁) = (π ⊧' ψ) → (π ⊧' ψ₁)
+    π ⊧' X ψ      = tailPath-seq π ⊧' ψ
+    π ⊧' F ψ      = future π ψ
+    π ⊧' G ψ      = global π ψ
+    π ⊧' (ψ U ψ₁) = justUntil π ψ ψ₁
+    π ⊧' (ψ W ψ₁) = justUntil π ψ ψ₁ ⊎ global π ψ
+    π ⊧' (ψ R ψ₁) = until π ψ₁ ψ ⊎ global π ψ
+\end{code}
 
 
+\begin{code}[hide]
 module Model (Atom : Set)  where
 
   open Syntax Atom -- public
+\end{code}
 
+The consequence relation can now be generalized to say whether a model M, with a
+given initial state s, yields a formula ϕ. The meaning of M ,, s ⊧ ϕ, is the
+type which, given any path π beginning at s, produces evidence that ϕ is a
+consequence of π.
+
+\begin{code}
   --Definition 3.8
   _,,_⊧_ : (M : 𝑀 Atom) → (s : M .𝑀.State) → ϕ → Set
   M ,, s ⊧ ϕ = ∀ (π : Path) → headPath π ≡ s → π ⊧ ϕ
+\end{code}
+\begin{code}[hide]
     where open Transition Atom M hiding (ϕ)
+\end{code}
 
+\subsection{Alternative Path definition}
+
+We now recapitulate the above notions of consequence utilizing a the functional
+implementation of paths. It appeals to a different intuition, as well as markind different ways of structuring some of the example proofs below [TODO : reference].
+
+
+\section{Example}
+
+\begin{code}
 
 module Example1 where
 
