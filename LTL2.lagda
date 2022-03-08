@@ -273,11 +273,6 @@ $M$. Although these look quite different, we [TODO] prove they are equivalent el
   open Path-seq
 \end{code}
 
-Once again inhereting the notion of head and tail from streams, we provide can
-overload these to our newly formulated sequence-based paths. In addition, we
-supply a function $path-i$ that drops the first n states of a path.
-
-
 
 
 With this infastructure in place, we can finally define what it means for
@@ -291,7 +286,7 @@ Glancing below, we see that the temporal type definitions involves a paramater
 (-⊧ψ : Path → Set), which, as the variable name suggests, is to be substituted
 by the semantic entailment applied to a sentence ψ. Although not mutually
 recursive, these definitions should be thought of as such - and indeed they are
-with alternative formulation of paths.
+with our alternative formulation of paths.
 
 The idea of the universal quantifier captured via a temporal modality, the
 notion of ``forever'' or ``global'', syntactically called $G$, has a meaning
@@ -364,7 +359,9 @@ Now for the temporal operats.
 The next operator, X_ , is given meaning by simply taking the path starting at
 the subsequent state in the path - exactly our tailPath function.
 
-We simply apply the work forward, global, and until operations all derive their meaning from the types we elaborated above, whereby the possible recursive steps are called their.
+We simply apply the work forward, global, and until operations all derive their
+meaning from the types we elaborated above, whereby the possible recursive steps
+are called their.
 
 The final operations are ``weak until'', W, and ``release'', R. The ψ W ψ₁
 until, means that, relative to path π, ψ holds until ψ₁, or ψ holds globally
@@ -372,8 +369,10 @@ already. A corollary is that any formula which holds globally over π also holds
 weakly until any arbitrary formula ψ₁. Additionally, any any formula ψ which
 holds until ψ₁ also satisfies the condition of holding weakly until ψ₁.
 
-The binary release operation, ψ R ψ₁, and which is dual to until, says that, in the case
-where ψ isn't by default globally true over π, there is a state in the path π where both ψ and ψ₁ are both true at the same time, which is why needed the extra evidence in until-h above.
+The binary release operation, ψ R ψ₁, and which is dual to until, says that, in
+the case where ψ isn't by default globally true over π, there is a state in the
+path π where both ψ and ψ₁ are both true at the same time, which is why needed
+the extra evidence in until-h above.
 
 \begin{code}
   _⊧_ : Path → ϕ → Set
@@ -397,7 +396,12 @@ This duality, in the sense that ¬ (¬ ψ R ¬ ψ₁) ≣ ψ U ψ₁ and ¬ (¬ 
 whose type theory is constructive. One could also introduce a strong release
 dual to weak until, but this is not necessary for our purposes, as translating
 from natural language to these more nuanced operators is certain to be a much
-bigger challenge than here.
+bigger challenge than we dare untertake here.
+
+Once again inhereting the notion of head and tail from streams, we provide can
+overload these to our newly formulated sequence-based paths. In addition, we
+supply a function $path-i$ that drops the first n states of a path. Again,
+taking the tail of a path, thetailPath-seq, gives meaning to the next operator X.
 
 \begin{code}[hide]
   headPath-seq : Path-seq → State
@@ -412,41 +416,62 @@ bigger challenge than here.
   path-i (suc i) p = path-i i (tailPath-seq p)
 \end{code}
 
+We briefly reiterate the temporal operators, as they manifest in our modified
+definition of semantic entailment, ⊧'. These are mutually recursive definitions,
+a distinguishing feature from the above definiton. The meaning of (F ψ) over the
+path π is the existence of a number i such that ψ is a consequence of the path
+given by droping the first i states of π.
+
 \begin{code}
   mutual
 \end{code}
 \begin{code}
-
     future : Path-seq → ϕ → Set
     future π ψ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ
-
 \end{code}
+
+For a formula ψ to hold forever onward, (G ψ), we simply say that any future
+subpath of path π entails ψ. That is, we can drop any number of states and still
+know ψ is true.
+
 \begin{code}
     global : Path-seq → ϕ → Set
     global π ψ = ∀ i → (path-i i π) ⊧' ψ
-
 \end{code}
+
+Coming to the binary temporal operators, we define helper functions (dependent function types) justUpTil and upTil.
+
+A sentence ψ holds until ψ₁ along some path π if there is a time i ∈ ℕ such that
+ψ₁ holds on π after i timestamps, and ψ holds just up until that moment ψ. For ψ
+to hold just up until time i, we simply assert that ψ holds for every timepoint
+j less than i- that is, the subpath of π beginning at j entails ψ. The meaning
+of week-until operator simply accepts the alternative condition that ψ globally
+holds about π.
+
 \begin{code}
     justUpTil : ℕ → Path-seq → ϕ → Set
     justUpTil i π ψ = ∀ (j : ℕ) → j <' i → (path-i j π) ⊧' ψ
 
+    justUntil : Path-seq → ϕ → ϕ → Set
+    justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ₁ × justUpTil i π ψ
 \end{code}
+
+The relaease operator is analogous to weak-until, with the added condition that
+there must be a moment where ψ and ψ₁ are simultaneously true. This simple
+cahnge is made by substituting ≤' for <' in the definition of upTil, thereby
+illimunating the use of the word ``just'' to reference the weaker condition. The
+strong-release would come out as our definition of until here, ironically,
+suggesting a confused choice of variable names (or perhaps, as we feel, a poor
+choice of standard names of the operators in the literature).
+
 \begin{code}
     upTil : ℕ → Path-seq → ϕ → Set
     upTil i π ψ = ∀ (j : ℕ) → j ≤' i → (path-i j π) ⊧' ψ
 
-\end{code}
-\begin{code}
-    -- can rewrite with future in first clause
-    justUntil : Path-seq → ϕ → ϕ → Set
-    justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ₁ × justUpTil i π ψ
-
-\end{code}
-\begin{code}
     until : Path-seq → ϕ → ϕ → Set
     until π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧' ψ₁ × upTil i π ψ
-
 \end{code}
+
 \begin{code}
     -- Definition 3.6
     _⊧'_ : Path-seq → ϕ → Set
