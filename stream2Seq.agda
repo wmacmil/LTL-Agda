@@ -25,37 +25,39 @@ record _≈_ (xs : Stream) (ys : Stream) : Set where
 
 open _≈_
 
-record Stream2 : Set where
-  field
-    infBoolSeq : ℕ → Bool
+Stream2 = ℕ → Bool
 
-open Stream2
+-- record Stream2 : Set where
+--   field
+--     infBoolSeq : ℕ → Bool
 
-record _≈'_ (xs : Stream2) (ys : Stream2) : Set where
-  coinductive
-  field
-    fcn-≡ : infBoolSeq xs ≡ infBoolSeq ys
+-- open Stream2
 
-open _≈'_
+-- record _≈'_ (xs : Stream2) (ys : Stream2) : Set where
+--   coinductive
+--   field
+--     fcn-≡ : infBoolSeq xs ≡ infBoolSeq ys
+
+-- open _≈'_
 
 evalStream2 : Stream2 → ℕ → Bool
-evalStream2 x n = infBoolSeq x n
+evalStream2 x n = x n
 
 tailStream2 : Stream2 → Stream2
-tailStream2 x = record { infBoolSeq = λ n → infBoolSeq x (n + 1) }
+tailStream2 x = λ n → x (suc n)
 
 from-ithState : (i : ℕ) → Stream → Stream
 from-ithState zero x    = x
 from-ithState (suc i) x = from-ithState i (tl x)
 
 stream2Stream2 : Stream → Stream2
-stream2Stream2 x .infBoolSeq = λ n → hd (from-ithState n x)
+stream2Stream2 x = λ n → hd (from-ithState n x)
 
 -- take the minus one of the input streams input
 stream22Stream : Stream2 → Stream
-stream22Stream x .hd = infBoolSeq x 0
+stream22Stream x .hd = x 0
 stream22Stream x .tl =
-  stream22Stream (record { infBoolSeq = λ n → infBoolSeq x (n + 1) })
+  stream22Stream  λ n → x (suc n)
 
 postulate
   funext : {A B : Set} → {f g : A → B} → ((a : A) → f a ≡ g a) → f ≡ g
@@ -71,11 +73,11 @@ postulate
 -- false, true, true, ...
 
 exStream2 : Stream2
-exStream2 .infBoolSeq zero = false
-exStream2 .infBoolSeq (suc n) = true
+exStream2 zero = false
+exStream2 (suc n) = true
 
 trueStream2 : Stream2
-trueStream2 .infBoolSeq = λ x → true
+trueStream2 = λ x → true
 
 trueStream : Stream
 trueStream .hd = true
@@ -86,8 +88,8 @@ exStream .hd = false
 exStream .tl = trueStream
 -- exStream .tl .tl = {!!}
 
-forwardTrueStream : stream2Stream2 (stream22Stream trueStream2) ≈' trueStream2
-forwardTrueStream .fcn-≡ = funext (λ a → {!!})
+-- forwardTrueStream : stream2Stream2 (stream22Stream trueStream2) ≈' trueStream2
+-- forwardTrueStream .fcn-≡ = funext (λ a → {!!})
 
 -- forward' : stream2Stream2 (stream22Stream exStream2) ≈' exStream2
 -- forward' .fcn-≡ = funext λ
@@ -102,7 +104,7 @@ lemma (suc n) = lemma n
 
 backward' : (stream22Stream (stream2Stream2 trueStream)) ≈ trueStream
 backward' .hd-≡ = refl
-backward' .tl-≈ = {!backward'!}
+backward' .tl-≈ = backward'
 
 -- backward' : (stream22Stream (stream2Stream2 exStream)) ≈ exStream
 -- backward' .hd-≡ = refl

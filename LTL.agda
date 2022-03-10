@@ -79,12 +79,6 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
       headValid : hd stream ⟶ nextState stream
       tailValid : streamAlwaysTransitions (tl stream)
 
-  -- streamsAlwaysTransition : (stream : Stream) → streamAlwaysTransitions stream
-  -- streamsAlwaysTransition stream =
-  --   record {
-  --     headValid = {!!} ;
-  --     tailValid = {!!} }
-
   record Path : Set where
     field
       infSeq         : Stream
@@ -298,13 +292,12 @@ module Example1 where
   ex-9-i .Transition.G-pf.∀-h = ev-T (ev-T {!!})
   ex-9-i .Transition.G-pf.∀-t = {!!}
 
-  -- why?
-  -- the left path clearly has no state with both, since its only s0s and s1s
-  -- any s2 has only r
-  ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
-  ex-6 π π0=s0 .G-pf.∀-h rewrite π0=s0 =
-    λ {()}
-  ex-6 π π0=s0 .G-pf.∀-t = ex-6 {!!} {!!} -- ex-6 (tailPath π) {!help!}
+  ex-6-i : ∀ (s : states) → (M ,, s ⊧ G (¬ (atom p ∧ atom r)))
+  ex-6-i s0 π π0=s .G-pf.∀-h rewrite π0=s = λ { ()}
+  ex-6-i s1 π π0=s .G-pf.∀-h rewrite π0=s = λ { ()}
+  ex-6-i s2 π π0=s .G-pf.∀-h rewrite π0=s = λ { ()}
+  ex-6-i s π π0=s .G-pf.∀-t = ex-6-i (headPath (tailPath π)) (tailPath π) refl
+  -- ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
 
   ex-8-s2-lemma : (M ,, s2 ⊧ ((F (G (atom r)))))
   ex-8-s2-lemma π init =

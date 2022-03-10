@@ -302,12 +302,15 @@ module Example1 where
   ex-5 x with x pathRight refl
   ex-5 x | () , s2r
 
+  -- special case
   -- ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
-  -- ex-6 π π0=s0 n (fst , snd) = {!!}
-  -- --   with headPath π | (π .infSeq 1) | (π .isTransitional 0)
-  -- -- ex-6 π refl n (fst , snd) | .s0 | .s1 | s0s1 = {!!}
-  -- -- ex-6 π refl n (fst , snd) | .s0 | .s2 | s0s2 = {!!}
-  -- -- ex-6 π x (suc i) x₁ = {!!}
+  ex-6 : ∀ (s : states) → (M ,, s ⊧ G (¬ (atom p ∧ atom r)))
+  ex-6 s0 π π0=s 0 rewrite π0=s = λ { ()}
+  ex-6 s1 π π0=s 0 rewrite π0=s = λ { ()}
+  ex-6 s2 π π0=s 0 rewrite π0=s = λ { ()}
+  ex-6 s0 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
+  ex-6 s1 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
+  ex-6 s2 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
 
 
   lemma0 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
@@ -319,7 +322,7 @@ module Example1 where
   ex-7 : M ,, s2 ⊧ G (atom r)
   ex-7 π π0=s0 zero with headPath π
   ex-7 π refl zero | .s2 = s2r
-  ex-7 π init (suc n) = -- | x' | .s2 | z = --  {!!}
+  ex-7 π init (suc n) =
     ex-7
       (tailPath π)
       (lemma0 π init)
@@ -334,33 +337,43 @@ module Example1 where
   lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
   lemma π (fst , s2r) | .s2 = refl
 
+  ex-8 :
+    (s : states) → (M ,, s ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  ex-8 = {!!} 
+  -- ex-8 s0 π init (fst , snd) = {!!}
+  -- ex-8 s1 π init x = {!!}
+  -- ex-8 s2 π init x = 0 , (ex-7 π init)
+  -- ex-8 s0 π init (zero , snd) = {!!}
+  -- ex-8 s0 π init (suc fst , snd) = {!!}
+  -- ex-8 s1 π init (fst , snd) = {!!}
+  -- ex-8 s2 π init x = 0 , (ex-7 π init)
+
+  -- -- what i want
+  -- ex-8 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+  -- ex-8 π init (zero , snd)
+  --   with headPath π
+  -- ex-8 π refl (zero , ()) | .s0
+  -- ex-8 π init (suc n , n⊧¬q , n⊧r) = {!!} --{!!}
+  --   -- ex-8-s2 (path-i {!suc n!} π) (lemma {!!} (n⊧¬q , n⊧r)) ({!!} , ({!!} , {!!}))
+  --   -- ex-8-s2 ((path-i {!suc n!} π)) (lemma (path-i {!suc n!} π) (n⊧¬q , n⊧r)) (suc n , (n⊧¬q , n⊧r))
+
+  -- ex-8 π init (Transition.ev-T x) = {!!}
+
+
   ex-9-ii : pathLeft ⊧ (G (F (atom p)))
   ex-9-ii zero = 0 , s0p
   ex-9-ii (suc zero) = 1 , s0p
   ex-9-ii (suc (suc n)) = ex-9-ii n
 
-  -- ex-9-ii zero | x | s0 | z = 1 , {!!}
-  -- ex-9-ii (suc zero) | x | s0 | s0s1 = 0 , {!!}
-  -- ex-9-ii (suc (suc n)) | x | s0 | s0s1 = ex-9-ii n
+-- ex-9-ii zero | x | s0 | z = 1 , {!!}
+-- ex-9-ii (suc zero) | x | s0 | s0s1 = 0 , {!!}
+-- ex-9-ii (suc (suc n)) | x | s0 | s0s1 = ex-9-ii n
 
-  -- ex-9-iii : ¬' (pathRight ⊧ ((G (F (atom p)))))
-  -- ex-9-iii f = ⊥-elim {!f!}
-  -- -- ex-9-iii : pathRight ⊧ (¬ (G (F (atom p))))
-  -- -- ex-9-iii n with (pathLeft .infSeq 0) | (pathLeft .isTransitional 0)
-  -- -- ex-9-iii n | s0 | s0s1 = ⊥-elim {!n!}
-
-  -- do we apply path-i to this problem
-  -- path-i : ℕ → Path → Path
-
-  -- -- what i want
-  -- ex-8 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
-  -- ex-8 π init (zero , snd) =  let x' = lemma π snd in {!!}
-  --   -- obvious contradiction
-  -- ex-8 π init (suc n , n⊧¬q , n⊧r) = --{!!}
-  --   -- ex-8-s2 (path-i {!suc n!} π) (lemma {!!} (n⊧¬q , n⊧r)) ({!!} , ({!!} , {!!}))
-  --   ex-8-s2 ((path-i {!suc n!} π)) (lemma (path-i {!suc n!} π) (n⊧¬q , n⊧r)) (suc n , (n⊧¬q , n⊧r))
-
-  -- ex-8 π init (Transition.ev-T x) = {!!}
+-- ex-9-iii : ¬' (pathRight ⊧ ((G (F (atom p)))))
+-- ex-9-iii f = ⊥-elim {!f!}
+-- -- ex-9-iii : pathRight ⊧ (¬ (G (F (atom p))))
+-- -- ex-9-iii n with (pathLeft .infSeq 0) | (pathLeft .isTransitional 0)
+-- -- ex-9-iii n | s0 | s0s1 = ⊥-elim {!n!}
 
 
   -- for ex-7
