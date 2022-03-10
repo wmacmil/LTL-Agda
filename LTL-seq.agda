@@ -2,8 +2,9 @@
 
 module LTL-seq where
 
+open import Function
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
-open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_)
+open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_ ; _+_ to _+'_)
 open import Data.Unit renaming (⊤ to ⊤')
 open import Data.Empty renaming (⊥ to ⊥')
 open import Data.Sum
@@ -74,11 +75,54 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   tailPath p .infSeq x = p .infSeq (suc x)
   tailPath p .isTransitional i = p .isTransitional (suc i)
 
+  -- could be nTimes tailPath
+  nTimes : {A : Set} → ℕ → (A → A) → (A → A)
+  nTimes zero f = id
+  nTimes (suc n) f = f ∘′ nTimes n f
+
+  nTimes' : {A : Set} → ℕ → (A → A) → (A → A)
+  nTimes' zero f a = a
+  nTimes' (suc n) f a = nTimes' n f (f a)
+
+  postulate
+    funext : {A B : Set} → {f g : A → B} → ((a : A) → f a ≡ g a) → f ≡ g
+
+  ntimesEqual : {A : Set} → ∀ n f → (a : A) → (nTimes n f a) ≡ nTimes' n f a
+  -- ntimesEqual : {A : Set} →  ∀ n f → (nTimes {A} n f ) ≡ nTimes' n f
+  ntimesEqual zero f a = refl
+  ntimesEqual (suc n) f a =
+    let rec = ntimesEqual n f a in
+    {!rec!} -- funext (λ a → {!!})
+
+  lemma-nTimes' : {A : Set} → ∀ f n → (a : A) → f (nTimes' n f a) ≡ nTimes' n f (f a)
+  lemma-nTimes' f zero a = refl
+  lemma-nTimes' f (suc n) a =
+    let rec = lemma-nTimes' f n a in
+    {!!}
 
   -- path-i == drop
   path-i : ℕ → Path → Path
+  -- path-i n = nTimes' n tailPath
   path-i zero p = p
   path-i (suc i) p = path-i i (tailPath p)
+
+  path-i' : ℕ → Path → Path
+  path-i' zero p = p
+  path-i' (suc i) p = tailPath (path-i i (p))
+
+  -- -- tailPathCommute : ∀ m p → (tailPath (path-i m p)) ≡ path-i m (tailPath p)
+  -- tailPathCommute : ∀ m p → path-i m p ≡ path-i' m p
+  -- tailPathCommute zero p = refl
+  -- tailPathCommute (suc m) record { infSeq = infSeq ; isTransitional = isTransitional } = {!!}
+
+  -- tailPathCommute : ∀ m p → (tailPath (path-i m p)) ≡ path-i m (tailPath p)
+  -- tailPathCommute zero p    = refl
+  -- tailPathCommute (suc m) p = {!!}
+
+  -- tail-lemma : ∀ n m p → (path-i n (path-i m p)) ≡ path-i (n +' m) p
+  -- tail-lemma zero    m p    = refl
+  -- tail-lemma (suc n) m p = {!tail-lemma n  !}
+
 
   mutual
 
@@ -337,16 +381,19 @@ module Example1 where
   lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
   lemma π (fst , s2r) | .s2 = refl
 
+  -- lemma' : ∀ n m π ϕ → path-i m (path-i n π) ⊧ ϕ → path-i (m +' n) π ⊧ ϕ
+  -- lemma'' : ∀ n π ϕ → (path-i n (tailPath π)) ⊧ ϕ → (path-i n (tailPath π)) ⊧ ϕ
   move-future : ∀ π n ϕ →
                 Transition.future atoms M (path-i n π) ϕ
               → Transition.future atoms M π ϕ
-  move-future π zero ϕ₁ (m , n-pf) = {!n-pf!}
-  move-future π (suc n) ϕ₁ (m , n-pf) = {!!}
-
+  move-future π zero ϕ₁ (m , n-pf) = m , n-pf
+  move-future π (suc n) ϕ₁ (m , n-pf) = (m +' (suc n)) , {!n-pf!}
 
   ex-8 :
     (s : states) → (M ,, s ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
-  ex-8 s π init (n , n-cond) = let π' = path-i n π in move-future π n (G (atom r)) (ex-8-s2 π' (lemma π' n-cond) (0 , n-cond))
+  ex-8 s π init (n , n-cond) =
+    let π' = path-i n π in
+    move-future π n (G (atom r)) (ex-8-s2 π' (lemma π' n-cond) (0 , n-cond))
   -- ex-8 s0 π init (fst , snd) = {!!}
   -- ex-8 s1 π init x = {!!}
   -- ex-8 s2 π init x = 0 , (ex-7 π init)
