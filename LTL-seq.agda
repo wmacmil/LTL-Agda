@@ -337,9 +337,16 @@ module Example1 where
   lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
   lemma π (fst , s2r) | .s2 = refl
 
+  move-future : ∀ π n ϕ →
+                Transition.future atoms M (path-i n π) ϕ
+              → Transition.future atoms M π ϕ
+  move-future π zero ϕ₁ (m , n-pf) = {!n-pf!}
+  move-future π (suc n) ϕ₁ (m , n-pf) = {!!}
+
+
   ex-8 :
     (s : states) → (M ,, s ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
-  ex-8 = {!!} 
+  ex-8 s π init (n , n-cond) = let π' = path-i n π in move-future π n (G (atom r)) (ex-8-s2 π' (lemma π' n-cond) (0 , n-cond))
   -- ex-8 s0 π init (fst , snd) = {!!}
   -- ex-8 s1 π init x = {!!}
   -- ex-8 s2 π init x = 0 , (ex-7 π init)
