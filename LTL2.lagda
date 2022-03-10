@@ -460,9 +460,10 @@ The relaease operator is analogous to weak-until, with the added condition that
 there must be a moment where ψ and ψ₁ are simultaneously true. This simple
 cahnge is made by substituting ≤' for <' in the definition of upTil, thereby
 illimunating the use of the word ``just'' to reference the weaker condition. The
-strong-release would come out as our definition of until here, ironically,
+unspecified strong-release would be defined as until here, ironically,
 suggesting a confused choice of variable names (or perhaps, as we feel, a poor
-choice of standard names of the operators in the literature).
+choice of standard names of the operators in the literature, because the
+colloquial uses of until can generally be inclusive of the transition state).
 
 \begin{code}
     upTil : ℕ → Path-seq → ϕ → Set
