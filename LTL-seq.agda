@@ -2,7 +2,7 @@
 
 module LTL-seq where
 
-open import Function
+open import Support
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_ ; _+_ to _+'_)
 open import Data.Unit renaming (⊤ to ⊤')
@@ -14,10 +14,10 @@ open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax;
 open import Relation.Binary.PropositionalEquality
 open import Relation.Binary hiding (_⇒_)
 
+-- Atom = FinSet
 module Syntax (Atom : Set) where
 
   data ϕ : Set where
-    -- atom     : Fin n → ϕ instantiate with module instead
     atom        : Atom → ϕ
     ⊥ ⊤         : ϕ
     ¬_          : ϕ → ϕ
@@ -28,15 +28,6 @@ module Syntax (Atom : Set) where
 rel : Set → Set₁
 rel s = s → s → Set
 
--- power set
-𝑃 : Set → Set
-𝑃 s = s → Bool
-
--- 𝑃 Bool has four member
--- for example, we encode the empty set as follows
-empt : 𝑃 Bool
-empt false = false
-empt true = false
 
 relAlwaysSteps : {S : Set} → rel S → Set
 relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
@@ -74,66 +65,9 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   tailPath p .infSeq x = p .infSeq (suc x)
   tailPath p .isTransitional i = p .isTransitional (suc i)
 
-  -- could be nTimes tailPath
-  nTimes : {A : Set} → ℕ → (A → A) → (A → A)
-  nTimes zero f = id
-  nTimes (suc n) f = f ∘′ nTimes n f
-
-  -- this should be provable by basic equality arguemnts
-  nTimes-homo : {A : Set} → ∀ n m f → (nTimes {A} n f) ∘  (nTimes m f) ≡ nTimes (n +' m) f
-  -- nTimes-homo : {A : Set} → ∀ n m f → nTimes {A} n (nTimes m f) ≡ nTimes (n +' m) f
-  nTimes-homo zero m f = refl
-  nTimes-homo (suc n) m f = {!!}
-
-  nTimes' : {A : Set} → ℕ → (A → A) → (A → A)
-  -- nTimes' zero f a = a
-  -- nTimes' (suc n) f a = nTimes' n f (f a)
-  nTimes' zero f = id
-  nTimes' (suc n) f a = nTimes' n f (f a)
-
-  postulate
-    funext : {A B : Set} → {f g : A → B} → ((a : A) → f a ≡ g a) → f ≡ g
-
-  -- no easy way to do this?
-  lemma-nTimes' : {A : Set} → ∀ f n → (a : A) → f (nTimes' n f a) ≡ nTimes' n f (f a)
-  lemma-nTimes' f zero a = refl
-  lemma-nTimes' f (suc n) a =
-    let rec = lemma-nTimes' f n a in
-    {!!}
-
-  -- can use lemma-nTimes' and some basic equality arguements
-  ntimesEqual : {A : Set} → ∀ n f → (a : A) → (nTimes n f a) ≡ nTimes' n f a
-  -- ntimesEqual : {A : Set} →  ∀ n f → (nTimes {A} n f ) ≡ nTimes' n f
-  ntimesEqual zero f a = refl
-  ntimesEqual (suc n) f a =
-    let rec = ntimesEqual n f a in
-    {!rec!} -- funext (λ a → {!!})
-
-
   -- path-i == drop
   path-i : ℕ → Path → Path
-  -- path-i n = nTimes' n tailPath
-  path-i zero p = p
-  path-i (suc i) p = path-i i (tailPath p)
-
-  path-i' : ℕ → Path → Path
-  path-i' zero p = p
-  path-i' (suc i) p = tailPath (path-i i (p))
-
-  -- -- tailPathCommute : ∀ m p → (tailPath (path-i m p)) ≡ path-i m (tailPath p)
-  -- tailPathCommute : ∀ m p → path-i m p ≡ path-i' m p
-  -- tailPathCommute zero p = refl
-  -- tailPathCommute (suc m) record { infSeq = infSeq ; isTransitional = isTransitional } = {!!}
-
-  -- tailPathCommute : ∀ m p → (tailPath (path-i m p)) ≡ path-i m (tailPath p)
-  -- tailPathCommute zero p    = refl
-  -- tailPathCommute (suc m) p = {!!}
-
-  tail-lemma : ∀ n m p → (path-i n (path-i m p)) ≡ path-i (n +' m) p
-  tail-lemma zero    m p    = refl
-  tail-lemma (suc n) m p =
-    let rec = tail-lemma n m p in
-    {!!}
+  path-i n = nTimes n tailPath
 
   mutual
 
@@ -185,23 +119,24 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
     _≣_ : {Path} → ϕ → ϕ → Set
     _≣_ {π} ϕ ψ = (_⇛_ {π} ϕ ψ) × (_⇚_ {π} ϕ ψ)
 
+    -- only true classically
+    postulate
+      le : {π : Path} {φ : ϕ} → _⇛_ {π} (¬ (G φ)) (F (¬ φ))
+
     -- The textbook doesn't used constructive logic
     -- We should really see this as (and refactor it too) via the quantifier
     -- laws
-    -- negGF : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (G φ)) (F (¬ φ))
-    -- negGF {pi} φ = le , ri
-    --   where
-    --     le : _⇛_ {pi} (¬ (G φ)) (F (¬ φ))
-    --     le x = {!!} , {!!} -- not provable
-
-    ri : {π : Path} (φ : ϕ) → _⇚_ {π} (¬ (G φ)) (F (¬ φ))
-    ri ϕ (n , ¬nthPi⊧φ) Gφ = ¬nthPi⊧φ (Gφ n)
+    negGF : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (G φ)) (F (¬ φ))
+    negGF {pi} φ = le {pi} {φ} , ri φ
+      where
+        ri : {π : Path} (φ : ϕ) → _⇚_ {π} (¬ (G φ)) (F (¬ φ))
+        ri ϕ (n , ¬nthPi⊧φ) Gφ = ¬nthPi⊧φ (Gφ n)
 
     negFG : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (F φ)) (G (¬ φ))
-    negFG {pi} φ = le , ri'
+    negFG {pi} φ = le' , ri'
       where
-        le : _⇛_ {pi} (¬ (F φ)) (G (¬ φ))
-        le ¬Fφ n later-φ = ¬Fφ (n , later-φ)
+        le' : _⇛_ {pi} (¬ (F φ)) (G (¬ φ))
+        le' ¬Fφ n later-φ = ¬Fφ (n , later-φ)
         ri' : _⇚_ {pi} (¬ (F φ)) (G (¬ φ))
         ri' G¬phi (fst , snd) = G¬phi fst snd
 
@@ -237,7 +172,6 @@ module Example1 where
     r : atoms
 
   data steps : rel states where
-  -- data steps : states → states → Set where
     s0s1 : steps s0 s1
     s0s2 : steps s0 s2
     s1s0 : steps s1 s0
@@ -250,6 +184,7 @@ module Example1 where
   steps-relAlwaysSteps s2 = s2 , s2s2
 
   -- To conform with our power-set definition
+  -- boolean blind
   l : states → 𝑃 atoms
   l s0 p = true
   l s0 q = true
@@ -282,11 +217,11 @@ module Example1 where
   open 𝑀
 
   ex1IsTransitionSyst : 𝑀 atoms
-  ex1IsTransitionSyst .State = states
-  ex1IsTransitionSyst ._⟶_ = steps
+  ex1IsTransitionSyst .State    = states
+  ex1IsTransitionSyst ._⟶_      = steps
   ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
-  ex1IsTransitionSyst .L = l'
-  -- ex1IsTransitionSyst .L'' = l''
+  ex1IsTransitionSyst .L        = l'
+  -- ex1IsTransitionSyst .L''   = l''
 
   M = ex1IsTransitionSyst
 
@@ -295,17 +230,17 @@ module Example1 where
 
   -- rightmost and leftmost branches on computation tree
   pathRight : Path
-  pathRight .infSeq zero = s0
-  pathRight .infSeq (suc i) = s2
-  pathRight .isTransitional zero = s0s2
+  pathRight .infSeq zero            = s0
+  pathRight .infSeq (suc i)         = s2
+  pathRight .isTransitional zero    = s0s2
   pathRight .isTransitional (suc i) = s2s2
 
   pathLeft : Path
-  pathLeft .infSeq zero = s0
-  pathLeft .infSeq (suc zero) = s1
-  pathLeft .infSeq (suc (suc x)) = pathLeft .infSeq x
-  pathLeft .isTransitional zero = s0s1
-  pathLeft .isTransitional (suc zero) = s1s0
+  pathLeft .infSeq zero                  = s0
+  pathLeft .infSeq (suc zero)            = s1
+  pathLeft .infSeq (suc (suc x))         = pathLeft .infSeq x
+  pathLeft .isTransitional zero          = s0s1
+  pathLeft .isTransitional (suc zero)    = s1s0
   pathLeft .isTransitional (suc (suc i)) = pathLeft .isTransitional i
 
   always-q-Left : pathLeft ⊧ (atom q)
@@ -357,8 +292,7 @@ module Example1 where
   ex-5 x with x pathRight refl
   ex-5 x | () , s2r
 
-  -- special case
-  -- ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
+  -- special case for real example, (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
   ex-6 : ∀ (s : states) → (M ,, s ⊧ G (¬ (atom p ∧ atom r)))
   ex-6 s0 π π0=s 0 rewrite π0=s = λ { ()}
   ex-6 s1 π π0=s 0 rewrite π0=s = λ { ()}
@@ -367,24 +301,19 @@ module Example1 where
   ex-6 s1 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
   ex-6 s2 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
 
-
-  lemma0 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
-  lemma0 π x
+  beginsWith-s2-always-s2 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
+  beginsWith-s2-always-s2 π x
     with headPath π | (π .infSeq 1) | (π .isTransitional 0)
-  lemma0 π refl | .s2 | s2 | a = refl
+  beginsWith-s2-always-s2 π refl | .s2 | s2 | a = refl
 
-  -- How to use the inductive Hypothesis
   ex-7 : M ,, s2 ⊧ G (atom r)
   ex-7 π π0=s0 zero with headPath π
   ex-7 π refl zero | .s2 = s2r
   ex-7 π init (suc n) =
     ex-7
       (tailPath π)
-      (lemma0 π init)
+      (beginsWith-s2-always-s2 π init)
       n
-
-  ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
-  ex-8-s2 π init x₁ = 0 , (ex-7 π init)
 
   lemma : ∀ p → p ⊧ ((¬ (atom q)) ∧ atom r) → headPath p ≡ s2
   lemma π x
@@ -392,47 +321,35 @@ module Example1 where
   lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
   lemma π (fst , s2r) | .s2 = refl
 
-  -- lemma' : ∀ n m π ϕ → path-i m (path-i n π) ⊧ ϕ → path-i (m +' n) π ⊧ ϕ
-  -- lemma'' : ∀ n π ϕ → (path-i n (tailPath π)) ⊧ ϕ → (path-i n (tailPath π)) ⊧ ϕ
+  path-i-CommutesWithTailPath : ∀ π n → path-i (suc n) π ≡ tailPath (path-i n π)
+  path-i-CommutesWithTailPath π n = sym (nTimesCommutesWith-f tailPath n π)
+
   move-future : ∀ π n ϕ →
                 Transition.future atoms M (path-i n π) ϕ
               → Transition.future atoms M π ϕ
   move-future π zero ϕ₁ (m , n-pf) = m , n-pf
-  move-future π (suc n) ϕ₁ (m , n-pf) = (m +' (suc n)) , {!n-pf!}
+  move-future π (suc n) ϕ₁ (m , n-pf) =
+    move-future π n ϕ₁
+      (suc m ,
+      subst
+        (λ x → nTimes m tailPath x ⊧ ϕ₁)
+        (path-i-CommutesWithTailPath π n )
+        n-pf)
 
   ex-8 :
     (s : states) → (M ,, s ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
   ex-8 s π init (n , n-cond) =
     let π' = path-i n π in
     move-future π n (G (atom r)) (ex-8-s2 π' (lemma π' n-cond) (0 , n-cond))
-  -- ex-8 s0 π init (fst , snd) = {!!}
-  -- ex-8 s1 π init x = {!!}
-  -- ex-8 s2 π init x = 0 , (ex-7 π init)
-  -- ex-8 s0 π init (zero , snd) = {!!}
-  -- ex-8 s0 π init (suc fst , snd) = {!!}
-  -- ex-8 s1 π init (fst , snd) = {!!}
-  -- ex-8 s2 π init x = 0 , (ex-7 π init)
-
-  -- -- what i want
-  -- ex-8 : (M ,, s0 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
-  -- ex-8 π init (zero , snd)
-  --   with headPath π
-  -- ex-8 π refl (zero , ()) | .s0
-  -- ex-8 π init (suc n , n⊧¬q , n⊧r) = {!!} --{!!}
-  --   -- ex-8-s2 (path-i {!suc n!} π) (lemma {!!} (n⊧¬q , n⊧r)) ({!!} , ({!!} , {!!}))
-  --   -- ex-8-s2 ((path-i {!suc n!} π)) (lemma (path-i {!suc n!} π) (n⊧¬q , n⊧r)) (suc n , (n⊧¬q , n⊧r))
-
-  -- ex-8 π init (Transition.ev-T x) = {!!}
+      where
+        ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
+        ex-8-s2 π init x₁ = 0 , (ex-7 π init)
 
 
   ex-9-ii : pathLeft ⊧ (G (F (atom p)))
   ex-9-ii zero = 0 , s0p
   ex-9-ii (suc zero) = 1 , s0p
   ex-9-ii (suc (suc n)) = ex-9-ii n
-
--- ex-9-ii zero | x | s0 | z = 1 , {!!}
--- ex-9-ii (suc zero) | x | s0 | s0s1 = 0 , {!!}
--- ex-9-ii (suc (suc n)) | x | s0 | s0s1 = ex-9-ii n
 
 -- ex-9-iii : ¬' (pathRight ⊧ ((G (F (atom p)))))
 -- ex-9-iii f = ⊥-elim {!f!}
@@ -458,15 +375,6 @@ module Example1 where
   -- below is Warrick trying to understand how to get at example 7
 
   -- that the path repeats itself
-
-  -- how can we avoid introducing all relevant info into the context
-  lemma01 : (p : Path) → headPath p ≡ s2 → headPath (path-i 2 p) ≡ s2
-  lemma01 π x
-    with headPath π | (π .infSeq 1) | (π .isTransitional 0) | (π .infSeq 2) | (π .isTransitional 1)
-  lemma01 π refl | .s2 | s2 | s2s2 | s2 | y0 = refl
-
-  lemmaLemma' : (path : Path) (n : ℕ) → (path-i 100 path .infSeq 0) ≡ (path .infSeq 100)
-  lemmaLemma' path n = refl
 
   -- -- how to prove this? is this a relevant lemma, really?
   -- -- it shouldn't relatively simple, but also
