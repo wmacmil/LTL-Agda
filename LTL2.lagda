@@ -401,7 +401,7 @@ bigger challenge than we dare untertake here.
 Once again inhereting the notion of head and tail from streams, we provide can
 overload these to our newly formulated sequence-based paths. In addition, we
 supply a function $path-i$ that drops the first n states of a path. Again,
-taking the tail of a path, thetailPath-seq, gives meaning to the next operator X.
+taking the tail of a path, the tailPath-seq, gives meaning to the next operator X.
 
 \begin{code}[hide]
   headPath-seq : Path-seq → State
@@ -515,15 +515,28 @@ consequence of π.
 \subsection{Alternative Path definition}
 
 We now recapitulate the above notions of consequence utilizing a the functional
-implementation of paths. It appeals to a different intuition, as well as markind different ways of structuring some of the example proofs below [TODO : reference].
+implementation of paths. It appeals to a different intuition, as well as markind
+different ways of structuring some of the example proofs below [TODO :
+reference].
 
 
 \section{Example}
 
-\begin{code}
+Notice that, until now, we have yet to actually prove a single thing : we have
+only supplied definitions. The example we take is verbatim copied from the book.
 
+We define a simple model, M, which consists of a set of three states {s0..s2},
+three atomic formula variables p q and r, and a step function over the states
+saying how one can move between them.
+
+as well as provide a
+labeling function l that merely supplies the infomr
+
+
+\begin{code}[hide]
 module Example1 where
-
+\end{code}
+\begin{code}
   data states : Set where
     s0 : states
     s1 : states
@@ -535,17 +548,14 @@ module Example1 where
     r : atoms
 
   data steps : rel states where
-  -- data steps : states → states → Set where
     s0s1 : steps s0 s1
     s0s2 : steps s0 s2
     s1s0 : steps s1 s0
     s1s2 : steps s1 s2
     s2s2 : steps s2 s2
+\end{code}
+\begin{code}
 
-  steps-relAlwaysSteps : relAlwaysSteps steps
-  steps-relAlwaysSteps s0 = s1 , s0s1
-  steps-relAlwaysSteps s1 = s0 , s1s0
-  steps-relAlwaysSteps s2 = s2 , s2s2
 
   l : states → 𝑃 atoms
   l s0 p = true
@@ -564,26 +574,63 @@ module Example1 where
     s1q : l' s1 q
     s1r : l' s1 r
     s2r : l' s2 r
+\end{code}
 
+We can now prove that the step function doesn't get stuck, noting that the
+requisite existence of a next state yields an arbitrary decision in a
+nondeterministic system. With this in place, we now have all the ingriedients to
+for a transition system, which we abbreviate as M.
+
+\begin{code}
+  steps-relAlwaysSteps : relAlwaysSteps steps
+  steps-relAlwaysSteps s0 = s1 , s0s1
+  steps-relAlwaysSteps s1 = s0 , s1s0
+  steps-relAlwaysSteps s2 = s2 , s2s2
+\end{code}
+\begin{code}[hide]
   open 𝑀
-
+\end{code}
+\begin{code}
   ex1IsTransitionSyst : 𝑀 atoms
   ex1IsTransitionSyst .State = states
   ex1IsTransitionSyst ._⟶_ = steps
   ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
   ex1IsTransitionSyst .L = l'
 
-  --abreviation
   M = ex1IsTransitionSyst
-
+\end{code}
+\begin{code}[hide]
   open Transition atoms ex1IsTransitionSyst
 
   open Path
   open Stream
   open streamAlwaysTransitions
+\end{code}
 
---   -- _◅_ : ∀ {i j k} (x : T i j) (xs : Star T j k) → Star T i k
+We now examine the edge cases of the \emph{undwinding} of the transition system
+M (figure 3.5 in the book). By edge cases we mean the leftmost and rightmost
+paths in the infinite tree of compuation paths beginning at s0. In simple cases,
+the tree actually gives a very intuitive picture of why certain formulas, are
+checkable in the model, much more intuitive than the syntax. Nonetheless, this
+\emph{simple} example could quickly become visually intractible if one adds
+complexity to the transition system, which is why the decidability of model
+checking is so important - because neither a visual aid nor a syntax as we've
+presented it will yield ``intiutive proofs'' in a more complex system.
 
+Although the unwinding of the paths yields an infinite tree, the convenience
+given by decidability is that paths are not arbitrary - in this case, any path
+can be composed of the extremal paths : any path can be seen as a finite length
+subpath of the leftmostpath which may transition to the rightmost path, and the
+only path which doesn't transition to the rightmost path is the leftmost path.
+This intuition should hopefully merit some of our proofs below.
+
+To define the rightmost path, pathRight, we note that it only consists of the s2
+state occuring infinitely often, whereby the consistent use of s2's
+relatedness to itself, s2s2, yields the transitionality property s2Transitions.
+We just begin with state s0, step to s2, and are now limited to
+deterministically staying in this state via the s2Path.
+
+\begin{code}
   s2Stream : Stream
   s2Stream .hd = s2
   s2Stream .tl = s2Stream
@@ -602,6 +649,18 @@ module Example1 where
   pathRight .infSeq .tl = s2Path .infSeq
   pathRight .isTransitional .headValid = s0s2
   pathRight .isTransitional .tailValid = s2Path .isTransitional
+\end{code}
+
+The leftmost path, pathLeft, is more interesting because it goes back and forth
+between states s0 and s1. However, it is just a matter of flipping the bit from
+state to state, whereby one can encode two mutally recursive streams seqLOdd and
+seqLEven, and then go back and forth via s0s1 and s1s0 to prove both streams are
+transitional. This fact that defining even and odd numbers in Agda is a kind of
+canonical example of mutually recursive definitions suggests our choice of
+names. One simply chooses the even path to give pathLeft because s0 is the start
+state.
+
+\begin{code}
 
   seqLEven : Stream
   seqLOdd : Stream
@@ -620,8 +679,19 @@ module Example1 where
   pathLeft : Path
   pathLeft .infSeq = seqLEven
   pathLeft .isTransitional = transLEven
-
+\end{code}
+\begin{code}[hide]
   open Model atoms
+\end{code}
+
+Elaborating the same examples from the text, we start with relatively ``easy'' proofs.
+
+[Enumerate]
+\begin{itemize}
+\item
+\end{itemize}
+
+\begin{code}
 
   ex-1 : M ,, s0 ⊧ (atom p ∧ atom q)
   ex-1 π init rewrite init = s0p , s0q
@@ -632,6 +702,9 @@ module Example1 where
 
   ex-3 : M ,, s0 ⊧ ⊤
   ex-3 π init = tt
+
+\end{code}
+\begin{code}
 
   ex-4 : M ,, s0 ⊧ X (atom r)
   ex-4 π π0=s0
@@ -671,13 +744,13 @@ module Example1 where
   ex-9-i .Transition.G-pf.∀-h = ev-T (ev-T {!!})
   ex-9-i .Transition.G-pf.∀-t = {!!}
 
-  -- why?
-  -- the left path clearly has no state with both, since its only s0s and s1s
-  -- any s2 has only r
-  ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
-  ex-6 π π0=s0 .G-pf.∀-h rewrite π0=s0 =
-    λ {()}
-  ex-6 π π0=s0 .G-pf.∀-t = ex-6 {!!} {!!} -- ex-6 (tailPath π) {!help!}
+  -- -- why?
+  -- -- the left path clearly has no state with both, since its only s0s and s1s
+  -- -- any s2 has only r
+  -- ex-6 : (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
+  -- ex-6 π π0=s0 .G-pf.∀-h rewrite π0=s0 =
+  --   λ {()}
+  -- ex-6 π π0=s0 .G-pf.∀-t = ex-6 {!!} {!!} -- ex-6 (tailPath π) {!help!}
 
   ex-8-s2-lemma : (M ,, s2 ⊧ ((F (G (atom r)))))
   ex-8-s2-lemma π init =

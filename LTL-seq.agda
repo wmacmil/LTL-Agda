@@ -108,40 +108,6 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
     π ⊧ (ψ R ψ₁) = until π ψ₁ ψ ⊎ global π ψ
 
 
-    -- for defining equivalence
-
-    _⇛_ : {Path} → ϕ → ϕ → Set
-    _⇛_ {π} ϕ ψ = π ⊧ ϕ → π ⊧ ψ
-
-    _⇚_ : {Path} → ϕ → ϕ → Set
-    _⇚_ {π} ϕ ψ = _⇛_ {π} ψ ϕ
-
-    _≣_ : {Path} → ϕ → ϕ → Set
-    _≣_ {π} ϕ ψ = (_⇛_ {π} ϕ ψ) × (_⇚_ {π} ϕ ψ)
-
-    -- only true classically
-    postulate
-      le : {π : Path} {φ : ϕ} → _⇛_ {π} (¬ (G φ)) (F (¬ φ))
-
-    -- The textbook doesn't used constructive logic
-    -- We should really see this as (and refactor it too) via the quantifier
-    -- laws
-    negGF : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (G φ)) (F (¬ φ))
-    negGF {pi} φ = le {pi} {φ} , ri φ
-      where
-        ri : {π : Path} (φ : ϕ) → _⇚_ {π} (¬ (G φ)) (F (¬ φ))
-        ri ϕ (n , ¬nthPi⊧φ) Gφ = ¬nthPi⊧φ (Gφ n)
-
-    negFG : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (F φ)) (G (¬ φ))
-    negFG {pi} φ = le' , ri'
-      where
-        le' : _⇛_ {pi} (¬ (F φ)) (G (¬ φ))
-        le' ¬Fφ n later-φ = ¬Fφ (n , later-φ)
-        ri' : _⇚_ {pi} (¬ (F φ)) (G (¬ φ))
-        ri' G¬phi (fst , snd) = G¬phi fst snd
-
-
-
 module Model (Atom : Set) where
 
   open Syntax Atom -- public
@@ -315,11 +281,11 @@ module Example1 where
       (beginsWith-s2-always-s2 π init)
       n
 
-  lemma : ∀ p → p ⊧ ((¬ (atom q)) ∧ atom r) → headPath p ≡ s2
-  lemma π x
+  ¬q∧r⇒∀s2 : ∀ p → p ⊧ ((¬ (atom q)) ∧ atom r) → headPath p ≡ s2
+  ¬q∧r⇒∀s2 π x
     with headPath π
-  lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
-  lemma π (fst , s2r) | .s2 = refl
+  ¬q∧r⇒∀s2 π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
+  ¬q∧r⇒∀s2 π (fst , s2r) | .s2 = refl
 
   path-i-CommutesWithTailPath : ∀ π n → path-i (suc n) π ≡ tailPath (path-i n π)
   path-i-CommutesWithTailPath π n = sym (nTimesCommutesWith-f tailPath n π)
@@ -340,7 +306,7 @@ module Example1 where
     (s : states) → (M ,, s ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
   ex-8 s π init (n , n-cond) =
     let π' = path-i n π in
-    move-future π n (G (atom r)) (ex-8-s2 π' (lemma π' n-cond) (0 , n-cond))
+    move-future π n (G (atom r)) (ex-8-s2 π' (¬q∧r⇒∀s2 π' n-cond) (0 , n-cond))
       where
         ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
         ex-8-s2 π init x₁ = 0 , (ex-7 π init)
@@ -358,47 +324,26 @@ module Example1 where
 -- -- ex-9-iii n | s0 | s0s1 = ⊥-elim {!n!}
 
 
-  -- for ex-7
-  -- can additionally use the following
-  -- helper : ∀ u w → u ≡ s2 → steps u w → w ≡ s2
-  -- helper .s2 .s2 refl s2s2 = refl
-      -- (helper
-      --   (headPath π)
-      --   (headPath (tailPath π))
-      --   init
-      --   (π .isTransitional 0))
+  -- in fact, this is the instance of a more general lemma
+  -- for any formula φ, G φ ⇒ G (F (φ)), it is used in the above proof as well
+  ex-10-s2 : (M ,, s2 ⊧ (G (F (atom r))))
+  ex-10-s2 π x i = 0 , ex-7 π x i
 
--- ex-7 π init .G-pf.∀-h rewrite init = s2r
--- ex-7 π init .G-pf.∀-t = ex-7 (tailPath π) (helper (headPath π) (hd (tl (infSeq π))) init (headValid (isTransitional π)) )
+  ex-10 : ∀ (s : states) → (M ,, s ⊧ (G (F (atom r))))
+  ex-10 s0 π π0=s zero
+    rewrite π0=s           = 1 , ex-4 π π0=s
+  ex-10 s1 π π0=s zero
+    rewrite π0=s           = 0 , subst (λ x → l' x r) (sym π0=s) s1r
+  ex-10 s2 π π0=s zero     = ex-10-s2 π π0=s 0
+  ex-10 s0 π π0=s (suc n)  = ex-10 (headPath (tailPath π)) (tailPath π) refl n
+  ex-10 s1 π π0=s (suc n)  = ex-10 (headPath (tailPath π)) (tailPath π) refl n
+  ex-10 s2 π π0=s (suc n)  = ex-10-s2 π π0=s (suc n)
 
+  ex-10-coro : ∀ (s : states) → M ,, s ⊧ (G (F (atom p)) ⇒ (G (F (atom r))))
+  ex-10-coro s π x x₁ = ex-10 s π x
 
-  -- below is Warrick trying to understand how to get at example 7
-
-  -- that the path repeats itself
-
-  -- -- how to prove this? is this a relevant lemma, really?
-  -- -- it shouldn't relatively simple, but also
-  -- lemmaLemma : (path : Path) (n : ℕ) → (path-i n path .infSeq 0) ≡ (path .infSeq n)
-  -- lemmaLemma path zero = refl
-  -- lemmaLemma path (suc n) = {!!}
-  --   where
-  --   -- ih : path-i n path .infSeq 0 ≡ path .infSeq n
-  --     ih = lemmaLemma path n
-
-  -- -- path-i : ℕ → Path → Path
-  -- -- this seems like the canonical piece of information needed for exercise 7
-  -- lemmai : (p : Path) → headPath p ≡ s2 → (i : ℕ) → headPath (path-i i p) ≡ s2
-  -- lemmai π init zero with headPath π
-  -- lemmai π refl zero | .s2 = refl
-  -- lemmai π init (suc n)
-  --   with headPath π | (path-i n (tailPath π) .infSeq 0) | (path-i n (tailPath π) .isTransitional 0)
-  -- lemmai π refl (suc n) | .s2 | x | y = {!x!}
-
-  -- lemmai π x n
-  --   with headPath π
-  -- -- with headPath path | path Path.infSeq 1
-  -- lemmai π refl zero | .s2 = {!!}
-  -- lemmai π refl (suc n) | .s2 = {!!}
+  ex-10-coro' : M ,, s0 ⊧ (G (F (atom p)) ⇒ (G (F (atom r))))
+  ex-10-coro' = ex-10-coro s0
 
 -- character references
 -- <spc> h d c -- help describe character
@@ -406,3 +351,39 @@ module Example1 where
 -- 𝑃 == \MiP
 -- ⇛ == \Rrightarrow
 -- gx% twice to flip
+
+module Equivalences (Atom : Set) (Model : 𝑀 Atom) where
+  open Transition Atom Model --  hiding (ϕ)
+  -- open Syntax Atom public
+  -- open 𝑀 Model
+  -- open Syntax Atom -- public
+
+  _⇛_ : {Path} → ϕ → ϕ → Set
+  _⇛_ {π} ϕ ψ = π ⊧ ϕ → π ⊧ ψ
+
+  _⇚_ : {Path} → ϕ → ϕ → Set
+  _⇚_ {π} ϕ ψ = _⇛_ {π} ψ ϕ
+
+  _≣_ : {Path} → ϕ → ϕ → Set
+  _≣_ {π} ϕ ψ = (_⇛_ {π} ϕ ψ) × (_⇚_ {π} ϕ ψ)
+
+  -- only true classically
+  postulate
+    le : {π : Path} {φ : ϕ} → _⇛_ {π} (¬ (G φ)) (F (¬ φ))
+
+  -- The textbook doesn't used constructive logic
+  -- We should really see this as (and refactor it too) via the quantifier
+  -- laws
+  negGF : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (G φ)) (F (¬ φ))
+  negGF {pi} φ = le {pi} {φ} , ri φ
+    where
+      ri : {π : Path} (φ : ϕ) → _⇚_ {π} (¬ (G φ)) (F (¬ φ))
+      ri ϕ (n , ¬nthPi⊧φ) Gφ = ¬nthPi⊧φ (Gφ n)
+
+  negFG : {π : Path} → (φ : ϕ) →  _≣_ {π} (¬ (F φ)) (G (¬ φ))
+  negFG {pi} φ = le' , ri'
+    where
+      le' : _⇛_ {pi} (¬ (F φ)) (G (¬ φ))
+      le' ¬Fφ n later-φ = ¬Fφ (n , later-φ)
+      ri' : _⇚_ {pi} (¬ (F φ)) (G (¬ φ))
+      ri' G¬phi (fst , snd) = G¬phi fst snd

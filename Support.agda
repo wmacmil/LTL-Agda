@@ -31,22 +31,22 @@ open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax;
 open import Relation.Nullary
 
 variable
-  X : Set
-  P : X → Set
+  A : Set
+  P : A → Set
 
 --not constructively valid
 postulate
-  one : ¬ ((x : X) → P x) → Σ[ x ∈ X ] ¬ (P x)
+  one : ¬ ((x : A) → P x) → Σ[ x ∈ A ] ¬ (P x)
 -- one ¬Px = {!!} , {!!}
 
-two : Σ[ x ∈ X ] ¬ (P x) → ¬ ((x : X) → P x)
+two : Σ[ x ∈ A ] ¬ (P x) → ¬ ((x : A) → P x)
 two (x , negPx) Px = negPx (Px x)
 
-three : ¬ (Σ[ x ∈ X ] (P x)) → (x : X) → ¬ P x
+three : ¬ (Σ[ x ∈ A ] (P x)) → (x : A) → ¬ P x
 three ¬xPx x Px = ¬xPx (x , Px)
 
-four : ((x : X) → ¬ P x) → ¬ (Σ[ x ∈ X ] (P x))
+four : ((x : A) → ¬ P x) → ¬ (Σ[ x ∈ A ] (P x))
 four ∀x¬Px (x' , Px') = ∀x¬Px x' Px'
 
-em-irrefutable : ¬ ¬ (X ⊎ ¬ X)
+em-irrefutable : ¬ ¬ (A ⊎ ¬ A)
 em-irrefutable f = f (inj₂ (λ x → f (inj₁ x)))
