@@ -4,6 +4,13 @@ open import Function
 open import Relation.Binary.PropositionalEquality
 open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_ ; _+_ to _+'_)
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
+open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax; ∃-syntax)
+
+rel : Set → Set₁
+rel s = s → s → Set
+
+relAlwaysSteps : {S : Set} → rel S → Set
+relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
 
 -- -- power set
 𝑃 : Set → Set
@@ -13,7 +20,6 @@ open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 empt : 𝑃 Bool
 empt false = false
 empt true = false
-
 
 nTimes : {A : Set} → ℕ → (A → A) → (A → A)
 nTimes zero f = id

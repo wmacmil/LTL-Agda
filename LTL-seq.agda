@@ -14,8 +14,8 @@ open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax;
 open import Relation.Binary.PropositionalEquality
 open import Relation.Binary hiding (_⇒_)
 
--- Atom = FinSet
 module Syntax (Atom : Set) where
+-- Think Atom =FinSet
 
   data ϕ : Set where
     atom        : Atom → ϕ
@@ -24,13 +24,6 @@ module Syntax (Atom : Set) where
     _∨_ _∧_ _⇒_ : ϕ → ϕ → ϕ
     X F G       : ϕ → ϕ
     _U_ _W_ _R_ : ϕ → ϕ → ϕ
-
-rel : Set → Set₁
-rel s = s → s → Set
-
-
-relAlwaysSteps : {S : Set} → rel S → Set
-relAlwaysSteps {S} rₛ = ∀ (s : S) → Σ[ s' ∈ S ] (rₛ s s')
 
 {-
 Refactored so-as to allow for easier (more infomrative) proofs
@@ -94,7 +87,6 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
     _⊧_ : Path → ϕ → Set
     π ⊧ ⊥        = ⊥'
     π ⊧ ⊤        = ⊤'
-    -- π ⊧ atom p   = T (L (headPath π ) p)
     π ⊧ atom p   = L (headPath π ) p
     π ⊧ (¬ ψ)    = ¬' (π ⊧ ψ)
     π ⊧ (ψ ∨ ψ₁) = (π ⊧ ψ) ⊎ (π ⊧ ψ₁)
@@ -109,17 +101,12 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
 
 
 module Model (Atom : Set) where
-
-  open Syntax Atom -- public
-
+  open Syntax Atom
   --Definition 3.8
+
   _,,_⊧_ : (M : 𝑀 Atom) → (s : M .𝑀.State) → ϕ → Set
   M ,, s ⊧ ϕ = ∀ (π : Path) → headPath π ≡ s → π ⊧ ϕ
     where open Transition Atom M hiding (ϕ)
-
-  -- _⇛_ : (M : 𝑀 Atom) → Transition.Path → ϕ → ϕ → Set
-  -- _⇛_ M ϕ = ?
-  --   where open Transition Atom M hiding (ϕ; Path)
 
 {-
 Taken from Figure 3.3
@@ -311,18 +298,16 @@ module Example1 where
         ex-8-s2 : (M ,, s2 ⊧ ((F ((¬ (atom q)) ∧ atom r)) ⇒ (F (G (atom r)))))
         ex-8-s2 π init x₁ = 0 , (ex-7 π init)
 
-
   ex-9-ii : pathLeft ⊧ (G (F (atom p)))
   ex-9-ii zero = 0 , s0p
   ex-9-ii (suc zero) = 1 , s0p
   ex-9-ii (suc (suc n)) = ex-9-ii n
 
--- ex-9-iii : ¬' (pathRight ⊧ ((G (F (atom p)))))
--- ex-9-iii f = ⊥-elim {!f!}
--- -- ex-9-iii : pathRight ⊧ (¬ (G (F (atom p))))
--- -- ex-9-iii n with (pathLeft .infSeq 0) | (pathLeft .isTransitional 0)
--- -- ex-9-iii n | s0 | s0s1 = ⊥-elim {!n!}
-
+  -- ex-9-iii : ¬' (pathRight ⊧ ((G (F (atom p)))))
+  -- ex-9-iii f = ⊥-elim {!f!}
+  -- -- ex-9-iii : pathRight ⊧ (¬ (G (F (atom p))))
+  -- -- ex-9-iii n with (pathLeft .infSeq 0) | (pathLeft .isTransitional 0)
+  -- -- ex-9-iii n | s0 | s0s1 = ⊥-elim {!n!}
 
   -- in fact, this is the instance of a more general lemma
   -- for any formula φ, G φ ⇒ G (F (φ)), it is used in the above proof as well
@@ -339,24 +324,14 @@ module Example1 where
   ex-10 s1 π π0=s (suc n)  = ex-10 (headPath (tailPath π)) (tailPath π) refl n
   ex-10 s2 π π0=s (suc n)  = ex-10-s2 π π0=s (suc n)
 
-  ex-10-coro : ∀ (s : states) → M ,, s ⊧ (G (F (atom p)) ⇒ (G (F (atom r))))
-  ex-10-coro s π x x₁ = ex-10 s π x
+  weakenFormula : ∀ s φ ψ → M ,, s ⊧ ψ → M ,, s ⊧ (φ ⇒ ψ)
+  weakenFormula s φ ψ ψTrue π init pf = ψTrue π init
 
-  ex-10-coro' : M ,, s0 ⊧ (G (F (atom p)) ⇒ (G (F (atom r))))
-  ex-10-coro' = ex-10-coro s0
-
--- character references
--- <spc> h d c -- help describe character
--- 𝑀 == \MiM
--- 𝑃 == \MiP
--- ⇛ == \Rrightarrow
--- gx% twice to flip
+  ex-10-coro-s0 : M ,, s0 ⊧ (G (F (atom p)) ⇒ (G (F (atom r))))
+  ex-10-coro-s0 = weakenFormula s0 (G (F (atom p))) (G (F (atom r))) (ex-10 s0)
 
 module Equivalences (Atom : Set) (Model : 𝑀 Atom) where
-  open Transition Atom Model --  hiding (ϕ)
-  -- open Syntax Atom public
-  -- open 𝑀 Model
-  -- open Syntax Atom -- public
+  open Transition Atom Model
 
   _⇛_ : {Path} → ϕ → ϕ → Set
   _⇛_ {π} ϕ ψ = π ⊧ ϕ → π ⊧ ψ
@@ -387,3 +362,10 @@ module Equivalences (Atom : Set) (Model : 𝑀 Atom) where
       le' ¬Fφ n later-φ = ¬Fφ (n , later-φ)
       ri' : _⇚_ {pi} (¬ (F φ)) (G (¬ φ))
       ri' G¬phi (fst , snd) = G¬phi fst snd
+
+-- character references
+-- <spc> h d c -- help describe character
+-- 𝑀 == \MiM
+-- 𝑃 == \MiP
+-- ⇛ == \Rrightarrow
+-- gx% twice to flip

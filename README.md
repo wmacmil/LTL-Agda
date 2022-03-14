@@ -15,3 +15,11 @@ TODO :
 * Link to some external SMT solver
 * Prove decidability
 * Extend to other temporal logics (most immediately probably Signal Temporal Logic (STL))
+
+Helpful :
+-- character references
+-- <spc> h d c -- help describe character
+-- 𝑀 == \MiM
+-- 𝑃 == \MiP
+-- ⇛ == \Rrightarrow
+-- gx% twice to flip
