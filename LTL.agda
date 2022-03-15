@@ -1,10 +1,11 @@
 {-# OPTIONS --postfix-projections #-}
+{-# OPTIONS --guardedness #-}
 
 module LTL where
 
 import Syntax
 open import Model
-open import Function
+open import Function using (_∘_)
 open import Support
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 open import Data.Nat
@@ -199,9 +200,9 @@ module Example1' where
         helper .s2 .s2 refl s2s2 = refl
       -}
 
-  ex-9-i : pathLeft ⊧ (G (F (atom r)))
-  ex-9-i .Transition.G-pf.∀-h = ev-T (ev-T {!!})
-  ex-9-i .Transition.G-pf.∀-t = {!!}
+  -- ex-9-i : pathLeft ⊧ (G (F (atom r)))
+  -- ex-9-i .Transition.G-pf.∀-h = ev-T (ev-T {!!})
+  -- ex-9-i .Transition.G-pf.∀-t = {!!}
 
   ex-6-i : ∀ (s : states) → (M ,, s ⊧ G (¬ (atom p ∧ atom r)))
   ex-6-i s0 π π0=s .G-pf.∀-h rewrite π0=s = λ { ()}
