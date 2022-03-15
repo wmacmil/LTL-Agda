@@ -3,7 +3,6 @@
 module LTL where
 
 import Syntax
-open import Model
 open import Function
 open import Support
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
@@ -16,9 +15,26 @@ open import Data.Fin
 open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
 
-module Transition (Atom : Set) (M : 𝑀 Atom) where
+-- module Syntax (Atom : Set) where
+
+--   data ϕ : Set where
+--     atom        : Atom → ϕ
+--     ⊥ ⊤         : ϕ
+--     ¬_          : ϕ → ϕ
+--     _∨_ _∧_ _⇒_ : ϕ → ϕ → ϕ
+--     X F G       : ϕ → ϕ
+--     _U_ _W_ _R_ : ϕ → ϕ → ϕ
+
+record 𝑀 (Atom : Set) : Set₁ where
+  field
+    State : Set
+    _⟶_ : rel State
+    relSteps : relAlwaysSteps _⟶_
+    L : State → Atom → Set
+
+module Transition (Atom : Set) (Model : 𝑀 Atom) where
   open Syntax Atom public
-  open 𝑀 M
+  open 𝑀 Model
   record Stream : Set where
     coinductive
     field
@@ -91,7 +107,7 @@ module Transition (Atom : Set) (M : 𝑀 Atom) where
   π ⊧ (ψ W ψ₁) = (U-Pf (_⊧ ψ) (_⊧ ψ₁) π) ⊎ G-pf (_⊧ ψ) π
   π ⊧ (ψ R ψ₁) = Uincl-Pf (_⊧ ψ₁) (_⊧ ψ) π ⊎ G-pf (_⊧ ψ) π
 
-module Models (Atom : Set)  where
+module Model (Atom : Set)  where
 
   open Syntax Atom
 
@@ -104,7 +120,18 @@ module Models (Atom : Set)  where
 module Example1' where
 
   open import Example1
+  open 𝑀
+
+  ex1IsTransitionSyst : 𝑀 atoms
+  ex1IsTransitionSyst .State = states
+  ex1IsTransitionSyst ._⟶_ = steps
+  ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
+  ex1IsTransitionSyst .L = l'
+
+  M = ex1IsTransitionSyst
+
   open Transition atoms ex1IsTransitionSyst
+
   open Path
   open Stream
   open streamAlwaysTransitions
@@ -118,35 +145,35 @@ module Example1' where
   s2Transitions .tailValid = s2Transitions
 
   s2Path : Path
-  s2Path .infSeq         = s2Stream
+  s2Path .infSeq = s2Stream
   s2Path .isTransitional = s2Transitions
 
   -- rightmost branch on computation tree
   pathRight : Path
-  pathRight .infSeq .hd                = s0
-  pathRight .infSeq .tl                = s2Path .infSeq
+  pathRight .infSeq .hd = s0
+  pathRight .infSeq .tl = s2Path .infSeq
   pathRight .isTransitional .headValid = s0s2
   pathRight .isTransitional .tailValid = s2Path .isTransitional
 
   seqLEven : Stream
-  seqLOdd  : Stream
+  seqLOdd : Stream
   seqLEven .hd = s0
   seqLEven .tl = seqLOdd
-  seqLOdd  .hd = s1
-  seqLOdd  .tl = seqLEven
+  seqLOdd .hd = s1
+  seqLOdd .tl = seqLEven
 
   transLEven : streamAlwaysTransitions seqLEven
-  transLOdd  : streamAlwaysTransitions seqLOdd
+  transLOdd : streamAlwaysTransitions seqLOdd
   transLEven .headValid = s0s1
   transLEven .tailValid = transLOdd
-  transLOdd  .headValid = s1s0
-  transLOdd  .tailValid = transLEven
+  transLOdd .headValid = s1s0
+  transLOdd .tailValid = transLEven
 
   pathLeft : Path
   pathLeft .infSeq = seqLEven
   pathLeft .isTransitional = transLEven
 
-  open Models atoms
+  open Model atoms
 
   ex-1 : M ,, s0 ⊧ (atom p ∧ atom q)
   ex-1 π init rewrite init = s0p , s0q

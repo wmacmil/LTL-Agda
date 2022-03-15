@@ -1,6 +1,7 @@
 module Example1 where
 
 open import Support
+open import Model
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax; ∃-syntax)
 
@@ -45,6 +46,16 @@ data l' : states → atoms → Set where
   s1r : l' s1 r
   s2r : l' s2 r
 
+open 𝑀
+
+ex1IsTransitionSyst : 𝑀 atoms
+ex1IsTransitionSyst .State    = states
+ex1IsTransitionSyst ._⟶_      = steps
+ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
+ex1IsTransitionSyst .L        = l'
+-- ex1IsTransitionSyst .L''   = l''
+
+M = ex1IsTransitionSyst
 -- open 𝑀
 
 -- ex1IsTransitionSyst : 𝑀 atoms

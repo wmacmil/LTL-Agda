@@ -4,7 +4,6 @@ module LTL-seq where
 
 import Syntax
 open import Support
-open import Model
 open import Data.Bool renaming (_∨_ to _∨'_ ; _∧_ to _∧'_)
 open import Data.Nat renaming (_≤_ to _≤'_ ; _<_ to _<'_ ; _+_ to _+'_)
 open import Data.Unit renaming (⊤ to ⊤')
@@ -16,9 +15,33 @@ open import Data.Product using (Σ; _×_; _,_; proj₁; proj₂; ∃; Σ-syntax;
 open import Relation.Binary.PropositionalEquality
 open import Relation.Binary hiding (_⇒_)
 
-module Transition (Atom : Set) (M : 𝑀 Atom) where
+-- module Syntax (Atom : Set) where
+-- -- Think Atom =FinSet
+
+--   data ϕ : Set where
+--     atom        : Atom → ϕ
+--     ⊥ ⊤         : ϕ
+--     ¬_          : ϕ → ϕ
+--     _∨_ _∧_ _⇒_ : ϕ → ϕ → ϕ
+--     X F G       : ϕ → ϕ
+--     _U_ _W_ _R_ : ϕ → ϕ → ϕ
+
+{-
+Refactored so-as to allow for easier (more infomrative) proofs
+Originally had
+  L : State → 𝑃 Atom
+-}
+record 𝑀 (Atom : Set) : Set₁ where
+  field
+    State : Set
+    _⟶_ : rel State
+    relSteps : relAlwaysSteps _⟶_
+    L : State → Atom → Set
+    -- L'' : Decidable L' -- Only Predicative?
+
+module Transition (Atom : Set) (Model : 𝑀 Atom) where
   open Syntax Atom public
-  open 𝑀 M
+  open 𝑀 Model
   alwaysSteps : (sₙ : ℕ → State) → Set
   alwaysSteps s = ∀ i → s i ⟶ s (suc i)
 
@@ -78,7 +101,7 @@ module Transition (Atom : Set) (M : 𝑀 Atom) where
     π ⊧ (ψ R ψ₁) = until π ψ₁ ψ ⊎ global π ψ
 
 
-module Models (Atom : Set) where
+module Model (Atom : Set) where
   open Syntax Atom
   --Definition 3.8
 
@@ -90,13 +113,76 @@ module Models (Atom : Set) where
 Taken from Figure 3.3
 Defined on page 178
 -}
-module Example1' where
+module Example1 where
 
-  open import Example1
+  data states : Set where
+    s0 : states
+    s1 : states
+    s2 : states
+
+  data atoms : Set where
+    p : atoms
+    q : atoms
+    r : atoms
+
+  data steps : rel states where
+    s0s1 : steps s0 s1
+    s0s2 : steps s0 s2
+    s1s0 : steps s1 s0
+    s1s2 : steps s1 s2
+    s2s2 : steps s2 s2
+
+  steps-relAlwaysSteps : relAlwaysSteps steps
+  steps-relAlwaysSteps s0 = s1 , s0s1
+  steps-relAlwaysSteps s1 = s0 , s1s0
+  steps-relAlwaysSteps s2 = s2 , s2s2
+
+  -- To conform with our power-set definition
+  -- boolean blind
+  l : states → 𝑃 atoms
+  l s0 p = true
+  l s0 q = true
+  l s0 r = false
+  l s1 p = false
+  l s1 q = true
+  l s1 r = true
+  l s2 p = false
+  l s2 q = false
+  l s2 r = true
+
+  data l' : states → atoms → Set where
+    s0p : l' s0 p
+    s0q : l' s0 q
+    s1q : l' s1 q
+    s1r : l' s1 r
+    s2r : l' s2 r
+
+  l'' : Decidable l'
+  l'' s0 p = yes s0p
+  l'' s0 q = yes s0q
+  l'' s0 r = no (λ ())
+  l'' s1 p = no (λ ())
+  l'' s1 q = yes s1q
+  l'' s1 r = yes s1r
+  l'' s2 p = no (λ ())
+  l'' s2 q = no (λ ())
+  l'' s2 r = yes s2r
+
+  open 𝑀
+
+  ex1IsTransitionSyst : 𝑀 atoms
+  ex1IsTransitionSyst .State    = states
+  ex1IsTransitionSyst ._⟶_      = steps
+  ex1IsTransitionSyst .relSteps = steps-relAlwaysSteps
+  ex1IsTransitionSyst .L        = l'
+  -- ex1IsTransitionSyst .L''   = l''
+
+  M = ex1IsTransitionSyst
 
   open Transition atoms ex1IsTransitionSyst
   open Path
 
+  -- rightmost and leftmost branches on computation tree
   pathRight : Path
   pathRight .infSeq zero            = s0
   pathRight .infSeq (suc i)         = s2
@@ -130,7 +216,7 @@ module Example1' where
   always-r-Right zero    = s2r
   always-r-Right (suc x) = always-r-Right x
 
-  open Models atoms
+  open Model atoms
 
   ex-1 : M ,, s0 ⊧ (atom p ∧ atom q)
   ex-1 π π0=s0 rewrite π0=s0 = s0p , s0q
@@ -160,7 +246,7 @@ module Example1' where
   ex-5 x with x pathRight refl
   ex-5 x | () , s2r
 
-  -- special case for real example, ex-6 s0
+  -- special case for real example, (M ,, s0 ⊧ G (¬ (atom p ∧ atom r)))
   ex-6 : ∀ (s : states) → (M ,, s ⊧ G (¬ (atom p ∧ atom r)))
   ex-6 s0 π π0=s 0 rewrite π0=s = λ { ()}
   ex-6 s1 π π0=s 0 rewrite π0=s = λ { ()}
