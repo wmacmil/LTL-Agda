@@ -684,15 +684,20 @@ state.
   open Model atoms
 \end{code}
 
-Elaborating the same examples from the text, we start with relatively ``easy'' proofs.
+Elaborating the same examples from the text, we start with relatively ``easy''
+proofs. We note that our use of both rewrite and with keywords to pattern match
+on cases about our proofs is not the most elegant pattern, and future
+developments may yield cleverer ways of dealing with data.
 
 [Enumerate]
 \begin{itemize}
+\item Our first example says that both p and q are true 
+\item
+\item
 \item
 \end{itemize}
 
 \begin{code}
-
   ex-1 : M ,, s0 ⊧ (atom p ∧ atom q)
   ex-1 π init rewrite init = s0p , s0q
 
