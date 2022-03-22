@@ -44,6 +44,10 @@ module Transition (Atom : Set) (M : 𝑀 Atom) where
   state-i : ℕ → Path → State
   state-i n π = headPath (path-i n π)
 
+  -- TODO : prove the along-path equivalent to the other formulations
+  along-path : Path → State → Set
+  along-path π s = ⊥' ⊎ Σ[ n ∈ ℕ ] state-i n π ≡ s
+
 module Models (Atom : Set)  where
   open CTL-syntax Atom
   -- open Path
@@ -52,7 +56,6 @@ module Models (Atom : Set)  where
   -- mutual
 
   module _ (M : 𝑀 Atom) where
-
     open Transition Atom M hiding (ϕ)
     open 𝑀 M
 
@@ -60,31 +63,22 @@ module Models (Atom : Set)  where
     M,-⊧ s (atom x)   = L s x
     M,-⊧ s ⊥          = ⊥'
     M,-⊧ s ⊤          = ⊤'
-    M,-⊧ s (¬ φ)      = ¬' (M,-⊧ s φ)
-    M,-⊧ s (φ ∨ φ₁)   = (M,-⊧ s φ) ⊎ (M,-⊧ s φ₁)
-    M,-⊧ s (φ ∧ φ₁)   = (M,-⊧ s φ) × (M,-⊧ s φ₁)
-    M,-⊧ s (φ ⇒ φ₁)   = (M,-⊧ s φ) → (M,-⊧ s φ₁)
-    M,-⊧ s (EX φ)     = Σ[ s₁ ∈ State ] (s ⟶ s₁) × (M,-⊧ s₁ φ)
--- (M,-⊧ s₁ φ)
-    M,-⊧ s (EF φ)     = {!!}
-    M,-⊧ s (EG φ)     = {!!}
+    M,-⊧ s (¬ φ)      = ¬' M,-⊧ s φ
+    M,-⊧ s (φ ∨ φ₁)   = M,-⊧ s φ ⊎ M,-⊧ s φ₁
+    M,-⊧ s (φ ∧ φ₁)   = M,-⊧ s φ × M,-⊧ s φ₁
+    M,-⊧ s (φ ⇒ φ₁)   = M,-⊧ s φ → M,-⊧ s φ₁
+    M,-⊧ s (EX φ)     = Σ[ s₁ ∈ State ] s ⟶ s₁ × M,-⊧ s₁ φ
+    -- M,-⊧ s (EF φ)     = Σ[ π ∈ Path ] headPath π ≡ s × Σ[ n ∈ ℕ ] M,-⊧ (state-i n π) φ
+    M,-⊧ s (EF φ)     = Σ[ π ∈ Path ] headPath π ≡ s × Σ[ sᵢ ∈ State ] (along-path π sᵢ ) × M,-⊧ sᵢ φ
+    M,-⊧ s (EG φ)     = Σ[ π ∈ Path ] headPath π ≡ s × ∀ (n : ℕ) → M,-⊧ (state-i n π) φ
     M,-⊧ s (AX φ)     = ∀ (s₁ : State) → s ⟶ s₁ → (M,-⊧ s₁ φ)
-    M,-⊧ s (AF φ)     = ∀ (π : Path) → headPath π ≡ s → Σ[ n ∈ ℕ ] (M,-⊧ (state-i n π) φ)
-    M,-⊧ s (AG φ)     = ∀ (π : Path) → headPath π ≡ s → ∀ (n : ℕ) →  (M,-⊧ (state-i n π) φ)
-    M,-⊧ s (A φ U φ₁) = ∀ (π : Path) → headPath π ≡ s → {!!}
-    M,-⊧ s (E φ U φ₁) = {!!}
-
-
-    -- justUpTil : ℕ → Path → ϕ → Set
-    -- justUpTil i π ψ = ∀ (j : ℕ) → j <' i → (path-i j π) ⊧ ψ
-    -- justUntil : Path → ϕ → ϕ → Set
-    -- justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × justUpTil i π ψ
-    -- _,,_⊧_
-    -- _,,_⊧_ : (M : 𝑀 Atom) → (s : M .𝑀.State) → ϕ → Set
+    M,-⊧ s (AF φ)     = ∀ π → headPath π ≡ s → Σ[ n ∈ ℕ ] M,-⊧ (state-i n π) φ
+    M,-⊧ s (AG φ)     = ∀ π → headPath π ≡ s → ∀ (n : ℕ) → M,-⊧ (state-i n π) φ
+    M,-⊧ s (A φ U φ₁) = ∀ π → headPath π ≡ s → Σ[ i ∈ ℕ ] M,-⊧ (state-i i π) φ₁ × ∀ j → j <' i →  M,-⊧ (state-i j π) φ
+    M,-⊧ s (E φ U φ₁) = Σ[ π ∈ Path ] headPath π ≡ s × Σ[ i ∈ ℕ ] M,-⊧ (state-i i π) φ₁ × ∀ j → j <' i →  M,-⊧ (state-i j π) φ
 
   _,,_⊧_ : (M : 𝑀 Atom) → (s : M .𝑀.State) → ϕ → Set
   _,,_⊧_ = M,-⊧
-
 
 module Example1' where
 
@@ -132,57 +126,77 @@ module Example1' where
   ex-1 .proj₁ = s0p
   ex-1 .proj₂ = s0q
 
-  -- M ,, s ⊧ atom x     = {!!}
-  -- M ,, s ⊧ ⊥          = {!!}
-  -- M ,, s ⊧ ⊤          = {!!}
-  -- M ,, s ⊧ (¬ φ)      = {!!}
-  -- M ,, s ⊧ (φ ∨ φ₁)   = {!!}
-  -- M ,, s ⊧ (φ ∧ φ₁)   = {!!}
-  -- M ,, s ⊧ (φ ⇒ φ₁)   = {!!}
-  -- M ,, s ⊧ EX φ       = {!!}
-  -- M ,, s ⊧ EF φ       = {!!}
-  -- M ,, s ⊧ EG φ       = {!!}
-  -- M ,, s ⊧ AX φ       = {!!}
-  -- M ,, s ⊧ AF φ       = {!!}
-  -- M ,, s ⊧ AG φ       = ∀ (π : Path) → headPath π ≡ s → ∀ (n : ℕ) →  (M ,, state-i n π  ⊧ φ)
-  --   where open Transition Atom M hiding (ϕ)
-  -- M ,, s ⊧ (A φ U φ₁) = {!!}
-  -- M ,, s ⊧ (E φ U φ₁) = {!!}
+  ex-2 : M ,, s0 ⊧ (¬ (atom r))
+  ex-2 ()
 
-    -- future : Path → ϕ → Set
-    -- future π ψ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ
+  ex-3 : M ,, s0 ⊧ ⊤
+  ex-3 = tt
 
-    -- global : Path → ϕ → Set
-    -- global π ψ = ∀ i → (path-i i π) ⊧ ψ
+  ex-4 : M ,, s0 ⊧ EX (atom q ∧ atom r)
+  ex-4 = s1 , (s0s1 , s1q , s1r)
 
-    -- justUpTil : ℕ → Path → ϕ → Set
-    -- justUpTil i π ψ = ∀ (j : ℕ) → j <' i → (path-i j π) ⊧ ψ
+  ex-5 : M ,, s0 ⊧ (¬ AX (atom q ∧ atom r))
+  ex-5 x = let f = proj₁ (x s2 s0s2) in destroy f
+    where
+      destroy : l' s2 q → ⊥'
+      destroy ()
 
-    -- upTil : ℕ → Path → ϕ → Set
-    -- upTil i π ψ = ∀ (j : ℕ) → j ≤' i → (path-i j π) ⊧ ψ
+  -- lemma
+  -- ex-6' : ∀ s → M ,, s ⊧ (¬ (atom p ∧ atom r))
+  -- ex-6' s0 ()
+  -- ex-6' s1 ()
+  -- ex-6' s2 ()
 
-    -- -- can rewrite with future in first clause
-    -- justUntil : Path → ϕ → ϕ → Set
-    -- justUntil π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × justUpTil i π ψ
+  -- needed to reforumalate definition of ⊧
+  ex-6 : M ,, s0 ⊧ (¬ EF (atom p ∧ atom r))
+  ex-6 (π , π0=s0 , s0 , ())
+  ex-6 (π , π0=s0 , s1 , ())
+  ex-6 (π , π0=s0 , s2 , ())
 
-    -- until : Path → ϕ → ϕ → Set
-    -- until π ψ ψ₁ = Σ[ i ∈ ℕ ] (path-i i π) ⊧ ψ₁ × upTil i π ψ
+  -- lemma : r is always true on pathRight
 
 
+  beginsWith-s2-always-s2 : (p : Path) → headPath p ≡ s2 → headPath (tailPath p) ≡ s2
+  beginsWith-s2-always-s2 π x
+    with headPath π | (π .infSeq 1) | (π .isTransitional 0)
+  beginsWith-s2-always-s2 π refl | .s2 | s2 | a = refl
 
-    -- -- Definition 3.6
-    -- _⊧_ : Path → ϕ → Set
-    -- _⊧_ = {!!}
-    -- -- π ⊧ ⊥        = ⊥'
-    -- -- π ⊧ ⊤        = ⊤'
-    -- -- π ⊧ atom p   = L (headPath π ) p
-    -- -- π ⊧ (¬ ψ)    = ¬' (π ⊧ ψ)
-    -- -- π ⊧ (ψ ∨ ψ₁) = (π ⊧ ψ) ⊎ (π ⊧ ψ₁)
-    -- -- π ⊧ (ψ ∧ ψ₁) = (π ⊧ ψ) × (π ⊧ ψ₁)
-    -- -- π ⊧ (ψ ⇒ ψ₁) = (π ⊧ ψ) → (π ⊧ ψ₁)
-    -- -- π ⊧ X ψ      = tailPath π ⊧ ψ
-    -- -- π ⊧ F ψ      = future π ψ
-    -- -- π ⊧ G ψ      = global π ψ
-    -- -- π ⊧ (ψ U ψ₁) = justUntil π ψ ψ₁
-    -- -- π ⊧ (ψ W ψ₁) = justUntil π ψ ψ₁ ⊎ global π ψ
-    -- -- π ⊧ (ψ R ψ₁) = until π ψ₁ ψ ⊎ global π ψ
+  -- copied from ltl-Seq
+  ex-7' : M ,, s2 ⊧ (AG (atom r))
+  ex-7' π π0=s2 zero with headPath π
+  ... | s2 = s2r
+  ex-7' π π0=s2 (suc n) =
+    ex-7'
+      (tailPath π)
+      (beginsWith-s2-always-s2 π π0=s2)
+      n
+
+  ex-7 : M ,, s2 ⊧ (EG (atom r))
+  ex-7 =
+    pathRightS2 ,
+    refl ,
+    ex-7' pathRightS2 refl
+
+  -- why isn't agda able to infer this?
+  ex-8 : M ,, s0 ⊧ (AF (atom r))
+  ex-8 π init
+    with headPath π | (π .infSeq 1) | (π .isTransitional 0)
+  ... | s0 | s1 | z = 1 , {!!}
+  ... | s0 | s2 | z = 1 , {!!}
+
+  ex-9 : M ,, s0 ⊧ (E ((atom p) ∧ (atom q)) U (atom r))
+  ex-9 = pathRight , (refl , 1 , (s2r , λ { zero x → s0p , s0q ; (suc j) (s≤s ())}))
+
+  -- same issue
+  ex-10 : M ,, s0 ⊧ (A (atom p) U (atom r))
+  ex-10 π init -- = 1 , ({!!} , {!!})
+    with headPath π | (π .infSeq 1) | (π .isTransitional 0)
+  ex-10 π init | s0 | s1 | z = 1 , {!!} , (λ { zero (s≤s x) → {!!} ; (suc j) (s≤s ())})
+  ex-10 π init | s0 | s2 | z = {!!}
+
+  -- -- namely, the rightpath is always available
+  -- ex-11 :  M ,, s0 ⊧ (AG (((atom p) ∨ ((atom q) ∨ (atom r))) ⇒ (EF (EG (atom r)))))
+  -- ex-11 π init zero x₁ = pathRight , ({!refl!} , ({!!} , {!!}))
+  -- ex-11 π init (suc n) x₁ = {!!}
+  -- -- ex-11 π init n x₁ = pathRightS2 , ({!!} , {!!})
+   
